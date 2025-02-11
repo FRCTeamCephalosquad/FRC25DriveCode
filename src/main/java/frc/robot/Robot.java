@@ -20,11 +20,13 @@ import edu.wpi.first.wpilibj.event.EventLoop;
 import edu.wpi.first.wpilibj2.command.RepeatCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 
-
 /**
- * The methods in this class are called automatically corresponding to each mode, as described in
- * the TimedRobot documentation. If you change the name of this class or the package after creating
- * this project, you must also update the manifest file in the resource directory.
+ * The methods in this class are called automatically corresponding to each
+ * mode, as described in
+ * the TimedRobot documentation. If you change the name of this class or the
+ * package after creating
+ * this project, you must also update the manifest file in the resource
+ * directory.
  */
 public class Robot extends TimedRobot {
   private final SparkMax m_leftDrive = new SparkMax(2, MotorType.kBrushed);
@@ -33,10 +35,7 @@ public class Robot extends TimedRobot {
   private final SparkMax m_rightDriveFollower = new SparkMax(5, MotorType.kBrushed);
   public static SparkMax m_coralFeeder = new SparkMax(6, MotorType.kBrushless);
 
-
-
-  private final DifferentialDrive m_robotDrive =
-      new DifferentialDrive(m_leftDrive::set, m_rightDrive::set);
+  private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftDrive::set, m_rightDrive::set);
   private final XboxController m_controller = new XboxController(0);
   private final Timer m_timer = new Timer();
 
@@ -58,7 +57,7 @@ public class Robot extends TimedRobot {
     // We need to invert one side of the drivetrain so that positive voltages
     // result in both sides moving forward. Depending on how your robot's
     // gearbox is constructed, you might have to invert the left side instead.
-   m_leftDrive.setInverted(true);
+    m_leftDrive.setInverted(true);
   }
 
   /** This function is run once each time the robot enters autonomous mode. */
@@ -74,26 +73,44 @@ public class Robot extends TimedRobot {
     if (m_timer.get() < 2.0) {
       // Drive forwards half speed, make sure to turn input squaring off
       m_robotDrive.arcadeDrive(0.5, 0.0, false);
+    } else if (m_timer.get() > 2 && m_timer.get() < 2.5) {
+      //m_leftDrive.set(-0.1);
+      //m_rightDrive.set(0.1);
+      m_robotDrive.arcadeDrive(0, .5, false);
+    } else if (m_timer.get() > 2.5 && m_timer.get() < 3.5) {
+      m_robotDrive.arcadeDrive(0.5, 0.0, false);
     } else {
       m_robotDrive.stopMotor(); // stop robot
     }
+
+    // If time is greater than two but less than three run the coral feeder at 40%
+    // speed
+
+    if (m_timer.get() > 3.5 && m_timer.get() < 4.5) {
+      m_coralFeeder.set(-0.4);
+    } else {
+      m_coralFeeder.stopMotor();
+    }
+
   }
 
-  /** This function is called once each time the robot enters teleoperated mode. */
+  /**
+   * This function is called once each time the robot enters teleoperated mode.
+   */
   @Override
-  public void teleopInit() {}
-  
+  public void teleopInit() {
+  }
 
   /** This function is called periodically during teleoperated mode. */
   @Override
   public void teleopPeriodic() {
     m_robotDrive.arcadeDrive(-m_controller.getLeftY(), -m_controller.getRightX());
 
-    if ( m_controller.getRightBumperButton() ){
-      //do this
+    if (m_controller.getRightBumperButton()) {
+      // do this
       m_coralFeeder.set(-0.4);
     } else {
-      //do that
+      // do that
       m_coralFeeder.set(0);
       m_coralFeeder.stopMotor();
     }
@@ -101,10 +118,12 @@ public class Robot extends TimedRobot {
 
   /** This function is called once each time the robot enters test mode. */
   @Override
-  public void testInit() {}
+  public void testInit() {
+  }
 
   /** This function is called periodically during test mode. */
   @Override
-  public void testPeriodic() {}
+  public void testPeriodic() {
+  }
 
 }
