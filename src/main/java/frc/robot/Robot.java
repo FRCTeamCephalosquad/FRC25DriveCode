@@ -18,7 +18,6 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 
-
 /**
  * The methods in this class are called automatically corresponding to each
  * mode, as described in
@@ -39,6 +38,7 @@ public class Robot extends TimedRobot {
   private final Timer m_timer = new Timer();
 
   private final AHRS gyro = new AHRS(NavXComType.kMXP_SPI);
+  private final Vision vision = new Vision();
 
   /** Called once at the beginning of the robot program. */
   public Robot() {
@@ -102,23 +102,27 @@ public class Robot extends TimedRobot {
   public void teleopInit() {
   }
 
+  double totalError = 0;
+
   /** This function is called periodically during teleoperated mode. */
   @Override
   public void teleopPeriodic() {
-   
+
     double forwardSpeed = -m_controller.getLeftY();
 
-    //Left is positive
+    // Left is positive
     double rotateSpeed = -m_controller.getRightX();
 
-    double gyroRotate = gyro.getRawGyroZ()/250.0;
+    double gyroRotate = gyro.getRawGyroZ() / 250.0;
     double error = gyroRotate - rotateSpeed;
 
-    if ( error > 0 )
-      System.out.println(error + "," + rotateSpeed+ "," + gyroRotate);
+    totalError = totalError + error;
+
+    if (error > 0)
+      System.out.println(error + "," + rotateSpeed + "," + gyroRotate);
 
     m_robotDrive.setDeadband(0);
-    m_robotDrive.arcadeDrive(forwardSpeed, (rotateSpeed - error * 3) + .1 * forwardSpeed, false);
+    m_robotDrive.arcadeDrive(forwardSpeed, rotateSpeed - totalError * .1, false);
 
     if (m_controller.getRightBumperButton()) {
       // do this
@@ -133,11 +137,29 @@ public class Robot extends TimedRobot {
   /** This function is called once each time the robot enters test mode. */
   @Override
   public void testInit() {
+    vision.start();
+  }
+
+  double clamp(double v, double min, double max) {
+    if (v < min)
+      return min;
+    if (v > max)
+      return max;
+    return v;
   }
 
   /** This function is called periodically during test mode. */
   @Override
   public void testPeriodic() {
+    System.out.println(vision.where);
+    if (!Double.isNaN(vision.where)) {
+      double turn = -vision.where / 100;
+      turn = clamp(turn, -.2, .2);
+      System.out.println(vision.where + " " + turn);
+      m_robotDrive.arcadeDrive(0, turn, false);
+    } else {
+      m_robotDrive.stopMotor();
+    }
   }
 
 }
