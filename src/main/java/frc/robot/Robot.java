@@ -9,6 +9,8 @@ import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.studica.frc.AHRS;
+import com.studica.frc.AHRS.NavXComType;
 
 import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -35,6 +37,8 @@ public class Robot extends TimedRobot {
   private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftDrive::set, m_rightDrive::set);
   private final XboxController m_controller = new XboxController(0);
   private final Timer m_timer = new Timer();
+
+  private final AHRS gyro = new AHRS(NavXComType.kMXP_SPI);
 
   /** Called once at the beginning of the robot program. */
   public Robot() {
@@ -101,7 +105,20 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during teleoperated mode. */
   @Override
   public void teleopPeriodic() {
-    m_robotDrive.arcadeDrive(-m_controller.getLeftY(), -m_controller.getRightX());
+   
+    double forwardSpeed = -m_controller.getLeftY();
+
+    //Left is positive
+    double rotateSpeed = -m_controller.getRightX();
+
+    double gyroRotate = gyro.getRawGyroZ()/250.0;
+    double error = gyroRotate - rotateSpeed;
+
+    if ( error > 0 )
+      System.out.println(error + "," + rotateSpeed+ "," + gyroRotate);
+
+    m_robotDrive.setDeadband(0);
+    m_robotDrive.arcadeDrive(forwardSpeed, (rotateSpeed - error * 3) + .1 * forwardSpeed, false);
 
     if (m_controller.getRightBumperButton()) {
       // do this
