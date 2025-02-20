@@ -8,7 +8,6 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.util.sendable.SendableRegistry;
@@ -16,9 +15,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.event.EventLoop;
-import edu.wpi.first.wpilibj2.command.RepeatCommand;
-import edu.wpi.first.wpilibj2.command.RunCommand;
+
 
 /**
  * The methods in this class are called automatically corresponding to each
@@ -74,8 +71,8 @@ public class Robot extends TimedRobot {
       // Drive forwards half speed, make sure to turn input squaring off
       m_robotDrive.arcadeDrive(0.5, 0.0, false);
     } else if (m_timer.get() > 2 && m_timer.get() < 2.5) {
-      //m_leftDrive.set(-0.1);
-      //m_rightDrive.set(0.1);
+      // m_leftDrive.set(-0.1);
+      // m_rightDrive.set(0.1);
       m_robotDrive.arcadeDrive(0, .5, false);
     } else if (m_timer.get() > 2.5 && m_timer.get() < 3.5) {
       m_robotDrive.arcadeDrive(0.5, 0.0, false);
