@@ -70,15 +70,19 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during autonomous. */
   @Override
   public void autonomousPeriodic() {
+    double drive1 = 2.7;
+    double turn = drive1 + 1.2;
+    double drive2 = turn + 1.6;
+    double coralWait = 1;
     // Drive for 2 seconds
-    if (m_timer.get() < 2.0) {
+    if (m_timer.get() < drive1) {
       // Drive forwards half speed, make sure to turn input squaring off
       m_robotDrive.arcadeDrive(0.5, 0.0, false);
-    } else if (m_timer.get() > 2 && m_timer.get() < 2.5) {
+    } else if (m_timer.get() < turn) {
       // m_leftDrive.set(-0.1);
       // m_rightDrive.set(0.1);
-      m_robotDrive.arcadeDrive(0, .5, false);
-    } else if (m_timer.get() > 2.5 && m_timer.get() < 3.5) {
+      m_robotDrive.arcadeDrive(0, -0.5, false);
+    } else if (m_timer.get() < drive2) {
       m_robotDrive.arcadeDrive(0.5, 0.0, false);
     } else {
       m_robotDrive.stopMotor(); // stop robot
@@ -87,8 +91,8 @@ public class Robot extends TimedRobot {
     // If time is greater than two but less than three run the coral feeder at 40%
     // speed
 
-    if (m_timer.get() > 3.5 && m_timer.get() < 4.5) {
-      m_coralFeeder.set(-0.4);
+    if (m_timer.get() > drive2 + coralWait && m_timer.get() < drive2 + coralWait + 1) {
+      m_coralFeeder.set(-0.3);
     } else {
       m_coralFeeder.stopMotor();
     }
@@ -107,28 +111,38 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during teleoperated mode. */
   @Override
   public void teleopPeriodic() {
+    System.out.println(vision.targetPosition());
 
     double forwardSpeed = -m_controller.getLeftY();
 
     // Left is positive
     double rotateSpeed = -m_controller.getRightX();
 
-    double gyroRotate = gyro.getRawGyroZ() / 250.0;
-    double error = gyroRotate - rotateSpeed;
+    System.out.println(forwardSpeed + " " + rotateSpeed);
 
-    totalError = totalError + error;
-
-    if (error > 0)
-      System.out.println(error + "," + rotateSpeed + "," + gyroRotate);
-
-    m_robotDrive.setDeadband(0);
-    m_robotDrive.arcadeDrive(forwardSpeed, rotateSpeed - totalError * .1, false);
+    /*
+     * double gyroRotate = gyro.getRawGyroZ() / 250.0;
+     * double error = gyroRotate - rotateSpeed;
+     * 
+     * totalError = totalError + error;
+     * 
+     * if (error > 0)
+     * System.out.println(error + "," + rotateSpeed + "," + gyroRotate);
+     * 
+     * m_robotDrive.setDeadband(0);
+     * 
+     * m_robotDrive.arcadeDrive(forwardSpeed, rotateSpeed - totalError * .1, false);
+     */
+    m_robotDrive.arcadeDrive(forwardSpeed, rotateSpeed);
 
     if (m_controller.getRightBumperButton()) {
-      // do this
-      m_coralFeeder.set(-0.4);
+      // Eject coral into level 1
+      m_coralFeeder.set(-0.2);
+    } else if (m_controller.getLeftBumperButton()) {
+      // TEST eject coral to level 2?
+      m_coralFeeder.set(0.5);
     } else {
-      // do that
+      // stop
       m_coralFeeder.set(0);
       m_coralFeeder.stopMotor();
     }
@@ -138,6 +152,8 @@ public class Robot extends TimedRobot {
   @Override
   public void testInit() {
     vision.start();
+    vision.lookFor(1);
+    m_robotDrive.setDeadband(0);
   }
 
   double clamp(double v, double min, double max) {
@@ -151,12 +167,17 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during test mode. */
   @Override
   public void testPeriodic() {
-    System.out.println(vision.where);
-    if (!Double.isNaN(vision.where)) {
-      double turn = -vision.where / 100;
-      turn = clamp(turn, -.2, .2);
-      System.out.println(vision.where + " " + turn);
-      m_robotDrive.arcadeDrive(0, turn, false);
+    System.out.println(vision.targetPosition());
+    if (vision.isTargetInSight()) {
+      double targetOffset = -vision.targetPosition();
+      double turn = 0;
+      if ( targetOffset > .2 ){
+        turn = .6;
+      } else if ( targetOffset < -.2 ){
+        turn = -.6;
+      }
+      //turn = clamp(Math.sqrt(turn), -.9, .9);
+      m_robotDrive.arcadeDrive(0.5, turn, false);
     } else {
       m_robotDrive.stopMotor();
     }
