@@ -13,21 +13,47 @@ import edu.wpi.first.wpilibj.Timer;
 
 public class Vision {
     private Thread m_visionThread;
+    private int target = 0;
+    private float where = Float.NaN;
 
-    public synchronized void start(){
-        if ( m_visionThread == null ){
+    /**
+     * What target do I look for?
+     * send 0 to turn me off.
+     * 
+     * @param targetId The target ID to look for
+     */
+    public void lookFor(int targetId) {
+        this.target = targetId;
+        if (target == 0) {
+            stop();
+        } else {
+            start();
+        }
+    }
+
+    public boolean isTargetInSight(){
+        return !Float.isNaN(where);
+    }
+    /**
+     * 
+     * @return Location of target. 0 Dead ahead, -1 way left, +1 way right.
+     */
+    public float targetPosition() {
+        return where;
+    }
+
+    public synchronized void start() {
+        if (m_visionThread == null) {
             visionInit();
         }
     }
 
-    public synchronized void stop(){
-        if ( m_visionThread != null ){
+    public synchronized void stop() {
+        if (m_visionThread != null) {
             m_visionThread.interrupt();
             m_visionThread = null;
         }
     }
-
-    double where = Double.NaN;
 
     private void visionInit() {
         // Only vision in robotInit below here
@@ -35,8 +61,8 @@ public class Vision {
                 () -> {
                     var camera = CameraServer.startAutomaticCapture("raw", 0);
 
-                    var cameraWidth = 640;
-                    var cameraHeight = 480;
+                    var cameraWidth = 800;
+                    var cameraHeight = 600;
 
                     camera.setResolution(cameraWidth, cameraHeight);
 
@@ -90,13 +116,12 @@ public class Vision {
 
                         var set = new HashSet<>();
 
-                        if ( results.length == 0){
-                            where = Double.NaN;
-                        } else {
-                            where = results[0].getCenterX() - (cameraWidth/2);
-                        }
+                        float w = Float.NaN;
 
                         for (var result : results) {
+                            if (result.getId() == target) {
+                                w = (float)(((results[0].getCenterX() - (cameraWidth / 2)) / cameraWidth));
+                            }
                             count += 1;
                             pt0.x = result.getCornerX(0);
                             pt1.x = result.getCornerX(1);
@@ -122,10 +147,9 @@ public class Vision {
                             Imgproc.putText(mat, String.valueOf(result.getId()), pt2, Imgproc.FONT_HERSHEY_SIMPLEX, 2,
                                     green, 7);
 
-                            
-
                         }
-                        ;
+
+                        where = w;
 
                         for (var id : set) {
                             System.out.println("Tag: " + String.valueOf(id));
