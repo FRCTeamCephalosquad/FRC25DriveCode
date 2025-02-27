@@ -24,11 +24,6 @@ public class Vision {
      */
     public void lookFor(int targetId) {
         this.target = targetId;
-        if (target == 0) {
-            stop();
-        } else {
-            start();
-        }
     }
 
     public boolean isTargetInSight() {
@@ -101,7 +96,7 @@ public class Vision {
                     timer.start();
                     var count = 0;
 
-                    while (!Thread.interrupted()) {
+                    while (!Thread.interrupted() && m_visionThread != null) {
                         if (cvSink.grabFrame(mat) == 0) {
                             outputStream.notifyError(cvSink.getError());
                             continue;

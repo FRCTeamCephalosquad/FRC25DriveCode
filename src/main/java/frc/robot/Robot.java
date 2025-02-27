@@ -69,6 +69,8 @@ public class Robot extends TimedRobot {
     // result in both sides moving forward. Depending on how your robot's
     // gearbox is constructed, you might have to invert the left side instead.
     m_leftDrive.setInverted(true);
+
+    vision.start();
   }
 
   @Override
@@ -94,8 +96,49 @@ public class Robot extends TimedRobot {
         new InstantCommand(() -> m_coralFeeder.stopMotor()));
   }
 
-  Command park(){
-    return new RunCommand(()-> m_robotDrive.stopMotor());
+  Command park() {
+    return new RunCommand(() -> m_robotDrive.stopMotor());
+  }
+
+  Command turnDegrees(double degrees) {
+
+    // gyro Positive is right
+    // Gyro jumps from 180 to -180
+    return new Command() {
+      boolean done = false;
+
+      @Override
+      public void initialize() {
+        gyro.zeroYaw();
+      }
+
+      @Override
+      public void execute() {
+        double error = degrees - gyro.getYaw();
+
+        double turn = -Math.signum(error);
+        if (Math.abs(error) < 45)
+          turn *= 0.3;
+        else
+          turn *= 0.4;
+
+        m_robotDrive.arcadeDrive(0, turn, false);
+        if (Math.abs(error) < 10) {
+          done = true;
+        }
+
+      }
+
+      public boolean isFinished() {
+        return done;
+      }
+
+      @Override
+      public void end(boolean interrited) {
+        m_robotDrive.setDeadband(RobotDriveBase.kDefaultDeadband);
+      }
+
+    };
   }
 
   Command seekAprilTagAhead(int tagId) {
@@ -131,7 +174,7 @@ public class Robot extends TimedRobot {
           // turn = clamp(Math.sqrt(turn), -.9, .9);
           m_robotDrive.arcadeDrive(0.5, turn, false);
         } else {
-          System.out.println("I don't see it yet...");
+          System.out.println("I don't see it...");
           m_robotDrive.arcadeDrive(0.4, 0, false);
         }
       }
@@ -141,11 +184,20 @@ public class Robot extends TimedRobot {
   /** This function is run once each time the robot enters autonomous mode. */
   @Override
   public void autonomousInit() {
-    vision.start();
+
+
+    /*CommandScheduler.getInstance().schedule(//
+        Commands.sequence(
+            park().raceWith(
+                new WaitCommand(1)),
+            turnDegrees(90),
+            park()));
+            */
+
     CommandScheduler.getInstance().schedule(//
         Commands.sequence(
             driveForTime(2.7),
-            turnForTime(0.7),
+            turnDegrees(45),
             seekAprilTagAhead(1)//
                 .raceWith(new WaitCommand(5)),
             new WaitCommand(1),
@@ -165,7 +217,6 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousExit() {
     CommandScheduler.getInstance().cancelAll();
-    vision.stop();
   }
 
   /**
@@ -259,7 +310,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testExit() {
-    vision.stop();
+
   }
 
 }
