@@ -46,7 +46,6 @@ public class Robot extends TimedRobot {
 
   private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftDrive::set, m_rightDrive::set);
   private final XboxController m_controller = new XboxController(0);
-  private final Timer m_timer = new Timer();
 
   private final AHRS gyro = new AHRS(NavXComType.kUSB1);
   private final Vision vision = new Vision();
@@ -95,19 +94,65 @@ public class Robot extends TimedRobot {
         new InstantCommand(() -> m_coralFeeder.stopMotor()));
   }
 
+  Command park(){
+    return new RunCommand(()-> m_robotDrive.stopMotor());
+  }
+
+  Command seekAprilTagAhead(int tagId) {
+    return new Command() {
+      @Override
+      public void initialize() {
+        m_robotDrive.setDeadband(0);
+        vision.lookFor(tagId);
+      }
+
+      @Override
+      public void end(boolean interrited) {
+        m_robotDrive.setDeadband(RobotDriveBase.kDefaultDeadband);
+        vision.lookFor(0);
+      }
+
+      @Override
+      public void execute() {
+
+        if (vision.isTargetInSight()) {
+          System.out.println("I SEE IT! " + vision.targetPosition());
+          double targetOffset = -vision.targetPosition();
+          double turn = 0;
+          if (targetOffset > .3) {
+            turn = .5;
+          } else if (targetOffset < -.3) {
+            turn = -.5;
+          } else if (targetOffset > .1) {
+            turn = .3;
+          } else if (targetOffset < -.1) {
+            turn = -.3;
+          }
+          // turn = clamp(Math.sqrt(turn), -.9, .9);
+          m_robotDrive.arcadeDrive(0.5, turn, false);
+        } else {
+          System.out.println("I don't see it yet...");
+          m_robotDrive.arcadeDrive(0.4, 0, false);
+        }
+      }
+    };
+  }
+
   /** This function is run once each time the robot enters autonomous mode. */
   @Override
   public void autonomousInit() {
-    m_timer.restart();
-
-    CommandScheduler.getInstance().schedule(Commands.sequence(
-        driveForTime(2.7),
-        turnForTime(1.2),
-        driveForTime(1.6),
-        new WaitCommand(1),
-        coralYeeter()
-    //
-    ));
+    vision.start();
+    CommandScheduler.getInstance().schedule(//
+        Commands.sequence(
+            driveForTime(2.7),
+            turnForTime(0.7),
+            seekAprilTagAhead(1)//
+                .raceWith(new WaitCommand(5)),
+            new WaitCommand(1),
+            coralYeeter(),
+            park()
+        //
+        ));
 
   }
 
@@ -120,6 +165,7 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousExit() {
     CommandScheduler.getInstance().cancelAll();
+    vision.stop();
   }
 
   /**
@@ -175,11 +221,8 @@ public class Robot extends TimedRobot {
   /** This function is called once each time the robot enters test mode. */
   @Override
   public void testInit() {
-    vision.start();
-    vision.lookFor(1);
     m_robotDrive.setDeadband(0);
   }
-
 
   /** This function is called periodically during test mode. */
   @Override
@@ -188,7 +231,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putString("DB/String 0", gyro.getYaw() + "");
 
     if (m_controller.getPOV() == 0) {
-      //m_robotDrive.arcadeDrive(0.6, 0, false);
+      // m_robotDrive.arcadeDrive(0.6, 0, false);
     } else if (m_controller.getYButton()) {
       m_robotDrive.setDeadband(0);
       if (vision.isTargetInSight()) {
