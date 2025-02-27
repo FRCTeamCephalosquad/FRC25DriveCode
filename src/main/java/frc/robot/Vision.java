@@ -31,9 +31,10 @@ public class Vision {
         }
     }
 
-    public boolean isTargetInSight(){
+    public boolean isTargetInSight() {
         return !Float.isNaN(where);
     }
+
     /**
      * 
      * @return Location of target. 0 Dead ahead, -1 way left, +1 way right.
@@ -82,21 +83,18 @@ public class Vision {
 
                     var aprilTagDetector = new AprilTagDetector();
 
-                    /*
-                     * var config = aprilTagDetector.getConfig();
-                     * config.quadSigma = 0.8f;
-                     * 
-                     * config.debug = true;
-                     * aprilTagDetector.setConfig(config);
-                     * 
-                     * 
-                     * 
-                     * var quadThreshParams = aprilTagDetector.getQuadThresholdParameters();
-                     * quadThreshParams.minClusterPixels = 250;
-                     * quadThreshParams.criticalAngle *= 5; // default is 10
-                     * quadThreshParams.maxLineFitMSE *= 1.5;
-                     * aprilTagDetector.setQuadThresholdParameters(quadThreshParams);
-                     */
+                    var config = aprilTagDetector.getConfig();
+                    //config.quadSigma = 0.8f;
+
+
+                    aprilTagDetector.setConfig(config);
+
+                   // var quadThreshParams = aprilTagDetector.getQuadThresholdParameters();
+                   // quadThreshParams.minClusterPixels = 250;
+                  //  quadThreshParams.criticalAngle *= 5; // default is 10
+                   // quadThreshParams.maxLineFitMSE *= 1.5;
+                   // aprilTagDetector.setQuadThresholdParameters(quadThreshParams);
+
                     aprilTagDetector.addFamily("tag36h11", 1);
 
                     var timer = new Timer();
@@ -110,9 +108,9 @@ public class Vision {
                         }
 
                         Imgproc.cvtColor(mat, grayMat, Imgproc.COLOR_RGB2GRAY);
-                        Imgproc.equalizeHist(grayMat, mat);
+                        Imgproc.equalizeHist(grayMat, grayMat);
 
-                        var results = aprilTagDetector.detect(mat);
+                        var results = aprilTagDetector.detect(grayMat);
 
                         var set = new HashSet<>();
 
@@ -120,7 +118,7 @@ public class Vision {
 
                         for (var result : results) {
                             if (result.getId() == target) {
-                                w = (float)(((results[0].getCenterX() - (cameraWidth / 2)) / cameraWidth));
+                                w = (float) (((results[0].getCenterX() - (cameraWidth / 2)) / cameraWidth));
                             }
                             count += 1;
                             pt0.x = result.getCornerX(0);

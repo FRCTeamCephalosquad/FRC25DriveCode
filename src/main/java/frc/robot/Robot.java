@@ -72,6 +72,11 @@ public class Robot extends TimedRobot {
     m_leftDrive.setInverted(true);
   }
 
+  @Override
+  public void robotPeriodic() {
+    CommandScheduler.getInstance().run();
+  }
+
   Command driveForTime(double x) {
     return Commands.sequence(
         new RunCommand(() -> m_robotDrive.arcadeDrive(0.5, 0.0, false)).raceWith(new WaitCommand(x)),
@@ -109,7 +114,12 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during autonomous. */
   @Override
   public void autonomousPeriodic() {
-    CommandScheduler.getInstance().run();
+
+  }
+
+  @Override
+  public void autonomousExit() {
+    CommandScheduler.getInstance().cancelAll();
   }
 
   /**
@@ -170,30 +180,37 @@ public class Robot extends TimedRobot {
     m_robotDrive.setDeadband(0);
   }
 
+
   /** This function is called periodically during test mode. */
   @Override
   public void testPeriodic() {
     SmartDashboard.putBoolean("DB/LED 0", gyro.isConnected());
     SmartDashboard.putString("DB/String 0", gyro.getYaw() + "");
 
-    if (!m_controller.getYButton()) {
-      teleopPeriodic();
-    } else {
+    if (m_controller.getPOV() == 0) {
+      //m_robotDrive.arcadeDrive(0.6, 0, false);
+    } else if (m_controller.getYButton()) {
       m_robotDrive.setDeadband(0);
       if (vision.isTargetInSight()) {
         System.out.println(vision.targetPosition());
         double targetOffset = -vision.targetPosition();
         double turn = 0;
-        if (targetOffset > .2) {
-          turn = .6;
-        } else if (targetOffset < -.2) {
-          turn = -.6;
+        if (targetOffset > .3) {
+          turn = .5;
+        } else if (targetOffset < -.3) {
+          turn = -.5;
+        } else if (targetOffset > .1) {
+          turn = .3;
+        } else if (targetOffset < -.1) {
+          turn = -.3;
         }
         // turn = clamp(Math.sqrt(turn), -.9, .9);
         m_robotDrive.arcadeDrive(0.5, turn, false);
       } else {
         m_robotDrive.stopMotor();
       }
+    } else {
+      teleopPeriodic();
     }
   }
 
