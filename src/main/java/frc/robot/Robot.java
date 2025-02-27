@@ -207,7 +207,7 @@ public class Robot extends TimedRobot {
         // turn = clamp(Math.sqrt(turn), -.9, .9);
         m_robotDrive.arcadeDrive(0.5, turn, false);
       } else {
-        m_robotDrive.stopMotor();
+        m_robotDrive.arcadeDrive(0.4, 0, false);
       }
     } else {
       teleopPeriodic();
