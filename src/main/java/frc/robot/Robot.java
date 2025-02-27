@@ -11,12 +11,23 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
+import com.studica.frc.AHRS.NavXUpdateRate;
 
 import edu.wpi.first.util.sendable.SendableRegistry;
+import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.drive.RobotDriveBase;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.FunctionalCommand;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 
 /**
  * The methods in this class are called automatically corresponding to each
@@ -37,7 +48,7 @@ public class Robot extends TimedRobot {
   private final XboxController m_controller = new XboxController(0);
   private final Timer m_timer = new Timer();
 
-  private final AHRS gyro = new AHRS(NavXComType.kMXP_SPI);
+  private final AHRS gyro = new AHRS(NavXComType.kUSB1);
   private final Vision vision = new Vision();
 
   /** Called once at the beginning of the robot program. */
@@ -61,42 +72,44 @@ public class Robot extends TimedRobot {
     m_leftDrive.setInverted(true);
   }
 
+  Command driveForTime(double x) {
+    return Commands.sequence(
+        new RunCommand(() -> m_robotDrive.arcadeDrive(0.5, 0.0, false)).raceWith(new WaitCommand(x)),
+        new InstantCommand(() -> m_robotDrive.arcadeDrive(0, 0.0, false)));
+  }
+
+  Command turnForTime(double x) {
+    return Commands.sequence(
+        new RunCommand(() -> m_robotDrive.arcadeDrive(0, -0.5, false)).raceWith(new WaitCommand(x)),
+        new InstantCommand(() -> m_robotDrive.arcadeDrive(0, 0.0, false)));
+  }
+
+  Command coralYeeter() {
+    return Commands.sequence(
+        new RunCommand(() -> m_coralFeeder.set(-0.2)).raceWith(new WaitCommand(1)),
+        new InstantCommand(() -> m_coralFeeder.stopMotor()));
+  }
+
   /** This function is run once each time the robot enters autonomous mode. */
   @Override
   public void autonomousInit() {
     m_timer.restart();
+
+    CommandScheduler.getInstance().schedule(Commands.sequence(
+        driveForTime(2.7),
+        turnForTime(1.2),
+        driveForTime(1.6),
+        new WaitCommand(1),
+        coralYeeter()
+    //
+    ));
+
   }
 
   /** This function is called periodically during autonomous. */
   @Override
   public void autonomousPeriodic() {
-    double drive1 = 2.7;
-    double turn = drive1 + 1.2;
-    double drive2 = turn + 1.6;
-    double coralWait = 1;
-    // Drive for 2 seconds
-    if (m_timer.get() < drive1) {
-      // Drive forwards half speed, make sure to turn input squaring off
-      m_robotDrive.arcadeDrive(0.5, 0.0, false);
-    } else if (m_timer.get() < turn) {
-      // m_leftDrive.set(-0.1);
-      // m_rightDrive.set(0.1);
-      m_robotDrive.arcadeDrive(0, -0.5, false);
-    } else if (m_timer.get() < drive2) {
-      m_robotDrive.arcadeDrive(0.5, 0.0, false);
-    } else {
-      m_robotDrive.stopMotor(); // stop robot
-    }
-
-    // If time is greater than two but less than three run the coral feeder at 40%
-    // speed
-
-    if (m_timer.get() > drive2 + coralWait && m_timer.get() < drive2 + coralWait + 1) {
-      m_coralFeeder.set(-0.3);
-    } else {
-      m_coralFeeder.stopMotor();
-    }
-
+    CommandScheduler.getInstance().run();
   }
 
   /**
@@ -111,14 +124,14 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during teleoperated mode. */
   @Override
   public void teleopPeriodic() {
-    System.out.println(vision.targetPosition());
+    /// System.out.println(vision.targetPosition());
 
     double forwardSpeed = -m_controller.getLeftY();
 
     // Left is positive
     double rotateSpeed = -m_controller.getRightX();
 
-    System.out.println(forwardSpeed + " " + rotateSpeed);
+    // System.out.println(forwardSpeed + " " + rotateSpeed);
 
     /*
      * double gyroRotate = gyro.getRawGyroZ() / 250.0;
@@ -133,6 +146,7 @@ public class Robot extends TimedRobot {
      * 
      * m_robotDrive.arcadeDrive(forwardSpeed, rotateSpeed - totalError * .1, false);
      */
+    m_robotDrive.setDeadband(RobotDriveBase.kDefaultDeadband);
     m_robotDrive.arcadeDrive(forwardSpeed, rotateSpeed);
 
     if (m_controller.getRightBumperButton()) {
@@ -156,31 +170,36 @@ public class Robot extends TimedRobot {
     m_robotDrive.setDeadband(0);
   }
 
-  double clamp(double v, double min, double max) {
-    if (v < min)
-      return min;
-    if (v > max)
-      return max;
-    return v;
-  }
-
   /** This function is called periodically during test mode. */
   @Override
   public void testPeriodic() {
-    System.out.println(vision.targetPosition());
-    if (vision.isTargetInSight()) {
-      double targetOffset = -vision.targetPosition();
-      double turn = 0;
-      if ( targetOffset > .2 ){
-        turn = .6;
-      } else if ( targetOffset < -.2 ){
-        turn = -.6;
-      }
-      //turn = clamp(Math.sqrt(turn), -.9, .9);
-      m_robotDrive.arcadeDrive(0.5, turn, false);
+    SmartDashboard.putBoolean("DB/LED 0", gyro.isConnected());
+    SmartDashboard.putString("DB/String 0", gyro.getYaw() + "");
+
+    if (!m_controller.getYButton()) {
+      teleopPeriodic();
     } else {
-      m_robotDrive.stopMotor();
+      m_robotDrive.setDeadband(0);
+      if (vision.isTargetInSight()) {
+        System.out.println(vision.targetPosition());
+        double targetOffset = -vision.targetPosition();
+        double turn = 0;
+        if (targetOffset > .2) {
+          turn = .6;
+        } else if (targetOffset < -.2) {
+          turn = -.6;
+        }
+        // turn = clamp(Math.sqrt(turn), -.9, .9);
+        m_robotDrive.arcadeDrive(0.5, turn, false);
+      } else {
+        m_robotDrive.stopMotor();
+      }
     }
+  }
+
+  @Override
+  public void testExit() {
+    vision.stop();
   }
 
 }
