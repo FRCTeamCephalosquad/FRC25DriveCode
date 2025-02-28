@@ -11,12 +11,9 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
-import com.studica.frc.AHRS.NavXUpdateRate;
 
 import edu.wpi.first.util.sendable.SendableRegistry;
-import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.drive.RobotDriveBase;
@@ -24,7 +21,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.FunctionalCommand;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
@@ -38,29 +34,39 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
  * directory.
  */
 public class Robot extends TimedRobot {
+  // Drive Motors
   private final SparkMax m_leftDrive = new SparkMax(2, MotorType.kBrushed);
   private final SparkMax m_rightDrive = new SparkMax(3, MotorType.kBrushed);
   private final SparkMax m_leftDriveFollower = new SparkMax(4, MotorType.kBrushed);
   private final SparkMax m_rightDriveFollower = new SparkMax(5, MotorType.kBrushed);
-  public static SparkMax m_coralFeeder = new SparkMax(6, MotorType.kBrushless);
 
+  // Drive Control
   private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftDrive::set, m_rightDrive::set);
   private final XboxController m_controller = new XboxController(0);
 
+  // Coral Motor
+  private final SparkMax m_coralFeeder = new SparkMax(6, MotorType.kBrushless);
+
+  // Navigation Aids
   private final AHRS gyro = new AHRS(NavXComType.kUSB1);
   private final Vision vision = new Vision();
 
-  /** Called once at the beginning of the robot program. */
+  /**
+   * Set up the robot, this is called ONCE when the robot code starts
+   */
   public Robot() {
     SendableRegistry.addChild(m_robotDrive, m_leftDrive);
     SendableRegistry.addChild(m_robotDrive, m_rightDrive);
 
+    // Set up the drive system
     m_robotDrive.setMaxOutput(0.5);
 
+    // Set up right follower
     SparkMaxConfig rightFollowConfig = new SparkMaxConfig();
     rightFollowConfig.follow(m_rightDrive);
     m_rightDriveFollower.configure(rightFollowConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
+    // Set up left follower
     SparkMaxConfig leftFollowConfig = new SparkMaxConfig();
     leftFollowConfig.follow(m_leftDrive);
     m_leftDriveFollower.configure(leftFollowConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
@@ -73,75 +79,131 @@ public class Robot extends TimedRobot {
     vision.start();
   }
 
+  /**
+   * This is called over and over again while the robot is running.
+   */
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
   }
 
-  Command driveForTime(double x) {
+  /**
+   * Drive for the given amount of time, at the given speed
+   */
+  Command driveForTime(double time, double speed) {
     return Commands.sequence(
-        new RunCommand(() -> m_robotDrive.arcadeDrive(0.5, 0.0, false)).raceWith(new WaitCommand(x)),
+        new RunCommand(() -> m_robotDrive.arcadeDrive(speed, 0.0, false)).raceWith(new WaitCommand(time)),
         new InstantCommand(() -> m_robotDrive.arcadeDrive(0, 0.0, false)));
   }
 
-  Command turnForTime(double x) {
+  /**
+   * Turn for the given amount of time, at the given speed
+   */
+  Command turnForTime(double time, double turn) {
     return Commands.sequence(
-        new RunCommand(() -> m_robotDrive.arcadeDrive(0, -0.5, false)).raceWith(new WaitCommand(x)),
+        new RunCommand(() -> m_robotDrive.arcadeDrive(0, turn, false)).raceWith(new WaitCommand(time)),
         new InstantCommand(() -> m_robotDrive.arcadeDrive(0, 0.0, false)));
   }
 
+  /**
+   * YEET that coral
+   */
   Command coralYeeter() {
     return Commands.sequence(
         new RunCommand(() -> m_coralFeeder.set(-0.2)).raceWith(new WaitCommand(1)),
         new InstantCommand(() -> m_coralFeeder.stopMotor()));
   }
 
+  /**
+   * Do nothing
+   */
   Command park() {
     return new RunCommand(() -> m_robotDrive.stopMotor());
   }
 
+  /*
+   * Turn the robot by a number of degrees, using the gyro
+   */
   Command turnDegrees(double degrees) {
+    final double SLOW_TURN = 0.3; // When we are close go this fast
+    final double FAST_TURN = 0.4; // If we are further, go this fast
 
     // gyro Positive is right
     // Gyro jumps from 180 to -180
     return new Command() {
       boolean done = false;
 
+      /**
+       * When this command starts it sets the control deadband to
+       * zero, and resets the gyro yaw to zero.
+       */
       @Override
       public void initialize() {
+        m_robotDrive.setDeadband(0);
         gyro.zeroYaw();
       }
 
       @Override
       public void execute() {
+        // How far are we from the direction we want to go?
         double error = degrees - gyro.getYaw();
 
+        // Figure out which way to turn
         double turn = -Math.signum(error);
-        if (Math.abs(error) < 45)
-          turn *= 0.3;
-        else
-          turn *= 0.4;
 
+        // And how fast
+        if (Math.abs(error) < 45)
+          turn *= SLOW_TURN;
+        else
+          turn *= FAST_TURN;
+
+        // Set the turn
         m_robotDrive.arcadeDrive(0, turn, false);
+
+        // If we are very close, set done to true.
         if (Math.abs(error) < 10) {
           done = true;
         }
 
       }
 
+      /*
+       * Is this command finished?
+       */
+      @Override
       public boolean isFinished() {
         return done;
       }
 
+      /**
+       * When done turn off motors and reset deadband
+       */
       @Override
-      public void end(boolean interrited) {
+      public void end(boolean interrupted) {
+        m_robotDrive.stopMotor();
         m_robotDrive.setDeadband(RobotDriveBase.kDefaultDeadband);
       }
 
     };
   }
 
+  /**
+   * This command drives towards an april tag.
+   * 
+   * It will just drive forward slowly no matter what, once it sees
+   * an april tag it will start steering towards it.
+   * 
+   * @param tagId
+   * @return
+   */
   Command seekAprilTagAhead(int tagId) {
+
+    final double SLOW_TURN = 0.3; // Speed to turn when it is almost straight ahead
+    final double FAST_TURN = 0.5; // Speed to turn if it is off to the side
+
+    final double TAG_SPEED = 0.5; // Speed to drive forward when we see it
+    final double SEARCH_SPEED = 0.4; // Speed to drive forward when we do not see it
+
     return new Command() {
       @Override
       public void initialize() {
@@ -150,33 +212,34 @@ public class Robot extends TimedRobot {
       }
 
       @Override
-      public void end(boolean interrited) {
-        m_robotDrive.setDeadband(RobotDriveBase.kDefaultDeadband);
-        vision.lookFor(0);
-      }
-
-      @Override
       public void execute() {
 
         if (vision.isTargetInSight()) {
-          System.out.println("I SEE IT! " + vision.targetPosition());
+          System.out.println("April Tag in sight: " + vision.targetPosition());
           double targetOffset = -vision.targetPosition();
           double turn = 0;
           if (targetOffset > .3) {
-            turn = .5;
+            turn = FAST_TURN;
           } else if (targetOffset < -.3) {
-            turn = -.5;
+            turn = -FAST_TURN;
           } else if (targetOffset > .1) {
-            turn = .3;
+            turn = SLOW_TURN;
           } else if (targetOffset < -.1) {
-            turn = -.3;
+            turn = -SLOW_TURN;
           }
-          // turn = clamp(Math.sqrt(turn), -.9, .9);
-          m_robotDrive.arcadeDrive(0.5, turn, false);
+
+          m_robotDrive.arcadeDrive(TAG_SPEED, turn, false);
         } else {
-          System.out.println("I don't see it...");
-          m_robotDrive.arcadeDrive(0.4, 0, false);
+          System.out.println("April tag not in sight.");
+          m_robotDrive.arcadeDrive(SEARCH_SPEED, 0, false);
         }
+      }
+
+      @Override
+      public void end(boolean interrupted) {
+        m_robotDrive.setDeadband(RobotDriveBase.kDefaultDeadband);
+        m_robotDrive.stopMotor();
+        vision.lookFor(0);
       }
     };
   }
@@ -185,18 +248,9 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousInit() {
 
-
-    /*CommandScheduler.getInstance().schedule(//
-        Commands.sequence(
-            park().raceWith(
-                new WaitCommand(1)),
-            turnDegrees(90),
-            park()));
-            */
-
     CommandScheduler.getInstance().schedule(//
         Commands.sequence(
-            driveForTime(2.7),
+            driveForTime(2.7, 0.5),
             turnDegrees(45),
             seekAprilTagAhead(1)//
                 .raceWith(new WaitCommand(5)),
@@ -231,31 +285,18 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during teleoperated mode. */
   @Override
   public void teleopPeriodic() {
-    /// System.out.println(vision.targetPosition());
 
+    // Drive Code...
+
+    // Get forward speed
     double forwardSpeed = -m_controller.getLeftY();
-
     // Left is positive
     double rotateSpeed = -m_controller.getRightX();
 
-    // System.out.println(forwardSpeed + " " + rotateSpeed);
-
-    /*
-     * double gyroRotate = gyro.getRawGyroZ() / 250.0;
-     * double error = gyroRotate - rotateSpeed;
-     * 
-     * totalError = totalError + error;
-     * 
-     * if (error > 0)
-     * System.out.println(error + "," + rotateSpeed + "," + gyroRotate);
-     * 
-     * m_robotDrive.setDeadband(0);
-     * 
-     * m_robotDrive.arcadeDrive(forwardSpeed, rotateSpeed - totalError * .1, false);
-     */
     m_robotDrive.setDeadband(RobotDriveBase.kDefaultDeadband);
     m_robotDrive.arcadeDrive(forwardSpeed, rotateSpeed);
 
+    // Coral YEET Teleop code
     if (m_controller.getRightBumperButton()) {
       // Eject coral into level 1
       m_coralFeeder.set(-0.2);
