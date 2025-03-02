@@ -59,7 +59,7 @@ public class Robot extends TimedRobot {
     SendableRegistry.addChild(m_robotDrive, m_rightDrive);
 
     // Set up the drive system
-    m_robotDrive.setMaxOutput(0.5);
+    m_robotDrive.setMaxOutput(0.6);
 
     // Set up right follower
     SparkMaxConfig rightFollowConfig = new SparkMaxConfig();
@@ -125,8 +125,8 @@ public class Robot extends TimedRobot {
    * Turn the robot by a number of degrees, using the gyro
    */
   Command turnDegrees(double degrees) {
-    final double SLOW_TURN = 0.3; // When we are close go this fast
-    final double FAST_TURN = 0.4; // If we are further, go this fast
+    final double SLOW_TURN = 0.6; // When we are close go this fast
+    final double FAST_TURN = 0.7; // If we are further, go this fast
 
     // gyro Positive is right
     // Gyro jumps from 180 to -180
@@ -250,12 +250,14 @@ public class Robot extends TimedRobot {
 
     CommandScheduler.getInstance().schedule(//
         Commands.sequence(
-            driveForTime(2.7, 0.5),
-            turnDegrees(45),
-            seekAprilTagAhead(1)//
+            driveForTime(2.2, 0.5),
+            turnDegrees(-45),
+            seekAprilTagAhead(11)//
                 .raceWith(new WaitCommand(5)),
             new WaitCommand(1),
             coralYeeter(),
+            new WaitCommand(1),
+            driveForTime(1, -.5),
             park()
         //
         ));
@@ -286,6 +288,12 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
+    if ( m_controller.getLeftTriggerAxis() > 0.9){
+      m_robotDrive.setMaxOutput(0.4);
+    } else {
+      m_robotDrive.setMaxOutput(0.6);
+    }
+
     // Drive Code...
 
     // Get forward speed
@@ -299,10 +307,10 @@ public class Robot extends TimedRobot {
     // Coral YEET Teleop code
     if (m_controller.getRightBumperButton()) {
       // Eject coral into level 1
-      m_coralFeeder.set(-0.2);
+      m_coralFeeder.set(-0.25);
     } else if (m_controller.getLeftBumperButton()) {
       // TEST eject coral to level 2?
-      m_coralFeeder.set(0.5);
+      //m_coralFeeder.set(0.5);
     } else {
       // stop
       m_coralFeeder.set(0);
