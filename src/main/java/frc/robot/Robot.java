@@ -254,14 +254,14 @@ public class Robot extends TimedRobot {
   private static final String autoBlueLeft = "Blue Left 22";
 
   public void autonomousOptionSetup() {
-    SmartDashboard.putStringArray("Auto List", new String[]{
-      autoDefault,
-      autoRedRight,
-      autoRedMiddle,
-      autoRedLeft,
-      autoBlueRight,
-      autoBlueMiddle,
-      autoBlueLeft
+    SmartDashboard.putStringArray("Auto List", new String[] {
+        autoDefault,
+        autoRedRight,
+        autoRedMiddle,
+        autoRedLeft,
+        autoBlueRight,
+        autoBlueMiddle,
+        autoBlueLeft
     });
   }
 
@@ -271,7 +271,6 @@ public class Robot extends TimedRobot {
 
     String autoName = SmartDashboard.getString("Auto Selector", autoDefault);
     System.out.println("RUNNING AUTONOMOUS " + autoName);
-    /* 
 
     CommandScheduler.getInstance().schedule(//
         Commands.sequence(
@@ -285,7 +284,8 @@ public class Robot extends TimedRobot {
             driveForTime(1, -.5),               //Back up
             park()                              //Stop movement
         ));
-*/
+
+
   }
 
   /** This function is called periodically during autonomous. */
@@ -310,10 +310,10 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
-    //Drive Code
+    // Drive Code
 
-    //Left trigger = slow speed
-    if ( m_controller.getLeftTriggerAxis() > 0.9){
+    // Left trigger = slow speed
+    if (m_controller.getLeftTriggerAxis() > 0.9) {
       m_robotDrive.setMaxOutput(0.4);
     } else {
       m_robotDrive.setMaxOutput(0.6);
