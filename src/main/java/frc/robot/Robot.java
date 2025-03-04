@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.drive.RobotDriveBase;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -77,6 +78,8 @@ public class Robot extends TimedRobot {
     m_leftDrive.setInverted(true);
 
     vision.start();
+
+    autonomousOptionSetup();
   }
 
   /**
@@ -244,9 +247,34 @@ public class Robot extends TimedRobot {
     };
   }
 
+  private static final String autoDefault = "Drive Off Line";
+  private static final String autoRedRight = "Red Right (Reef) 11";
+  private static final String autoRedMiddle = "Red Middle 10";
+  private static final String autoRedLeft = "Red Left 4";
+
+  private static final String autoBlueRight = "Blue Right (Reef) 20";
+  private static final String autoBlueMiddle = "Blue Middle 21";
+  private static final String autoBlueLeft = "Blue Left 22";
+
+  public void autonomousOptionSetup() {
+    SmartDashboard.putStringArray("Auto List", new String[]{
+      autoDefault,
+      autoRedRight,
+      autoRedMiddle,
+      autoRedLeft,
+      autoBlueRight,
+      autoBlueMiddle,
+      autoBlueLeft
+    });
+  }
+
   /** This function is run once each time the robot enters autonomous mode. */
   @Override
   public void autonomousInit() {
+
+    String autoName = SmartDashboard.getString("Auto Selector", autoDefault);
+    System.out.println("RUNNING AUTONOMOUS " + autoName);
+    /* 
 
     CommandScheduler.getInstance().schedule(//
         Commands.sequence(
@@ -261,7 +289,7 @@ public class Robot extends TimedRobot {
             park()
         //
         ));
-
+*/
   }
 
   /** This function is called periodically during autonomous. */
@@ -288,7 +316,7 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
-    if ( m_controller.getLeftTriggerAxis() > 0.9){
+    if (m_controller.getLeftTriggerAxis() > 0.9) {
       m_robotDrive.setMaxOutput(0.4);
     } else {
       m_robotDrive.setMaxOutput(0.6);
@@ -310,7 +338,7 @@ public class Robot extends TimedRobot {
       m_coralFeeder.set(-0.25);
     } else if (m_controller.getLeftBumperButton()) {
       // TEST eject coral to level 2?
-      //m_coralFeeder.set(0.5);
+      // m_coralFeeder.set(0.5);
     } else {
       // stop
       m_coralFeeder.set(0);
