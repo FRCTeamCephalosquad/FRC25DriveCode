@@ -58,9 +58,6 @@ public class Robot extends TimedRobot {
     SendableRegistry.addChild(m_robotDrive, m_leftDrive);
     SendableRegistry.addChild(m_robotDrive, m_rightDrive);
 
-    // Set up the drive system
-    m_robotDrive.setMaxOutput(0.6);
-
     // Set up right follower
     SparkMaxConfig rightFollowConfig = new SparkMaxConfig();
     rightFollowConfig.follow(m_rightDrive);
@@ -250,16 +247,15 @@ public class Robot extends TimedRobot {
 
     CommandScheduler.getInstance().schedule(//
         Commands.sequence(
-            driveForTime(2.2, 0.5),
-            turnDegrees(-45),
-            seekAprilTagAhead(11)//
-                .raceWith(new WaitCommand(5)),
-            new WaitCommand(1),
-            coralYeeter(),
-            new WaitCommand(1),
-            driveForTime(1, -.5),
-            park()
-        //
+            driveForTime(2.2, 0.5),             //Drive Forward
+            turnDegrees(-45),                   //Turn Left 45 degrees
+            seekAprilTagAhead(11)//             //Seek April Tag 11
+                .raceWith(new WaitCommand(5)),    //For up to 5 seconds
+            new WaitCommand(1),                 //Wait a second
+            coralYeeter(),                      //YEET
+            new WaitCommand(1),                 //Wait a second
+            driveForTime(1, -.5),               //Back up
+            park()                              //Stop movement
         ));
 
   }
@@ -282,19 +278,18 @@ public class Robot extends TimedRobot {
   public void teleopInit() {
   }
 
-  double totalError = 0;
-
   /** This function is called periodically during teleoperated mode. */
   @Override
   public void teleopPeriodic() {
 
+    //Drive Code
+
+    //Left trigger = slow speed
     if ( m_controller.getLeftTriggerAxis() > 0.9){
       m_robotDrive.setMaxOutput(0.4);
     } else {
       m_robotDrive.setMaxOutput(0.6);
     }
-
-    // Drive Code...
 
     // Get forward speed
     double forwardSpeed = -m_controller.getLeftY();
