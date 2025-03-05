@@ -215,7 +215,7 @@ public class Robot extends TimedRobot {
       public void execute() {
 
         if (vision.isTargetInSight()) {
-          System.out.println("April Tag in sight: " + vision.targetPosition());
+          System.out.println("AprilTag " + tagId + " in sight: " + vision.targetPosition());
           double targetOffset = -vision.targetPosition();
           double turn = 0;
           if (targetOffset > .3) {
@@ -230,7 +230,7 @@ public class Robot extends TimedRobot {
 
           m_robotDrive.arcadeDrive(TAG_SPEED, turn, false);
         } else {
-          System.out.println("April tag not in sight.");
+          System.out.println("AprilTag not in sight. Moving forward.");
           m_robotDrive.arcadeDrive(SEARCH_SPEED, 0, false);
         }
       }
@@ -245,13 +245,13 @@ public class Robot extends TimedRobot {
   }
 
   private static final String autoDefault = "Drive Off Line";
-  private static final String autoRedRight = "Red Right (Reef) 11";
-  private static final String autoRedMiddle = "Red Middle 10";
-  private static final String autoRedLeft = "Red Left 4";
+  private static final String autoRedRight = "Red Right (Red Reef)";
+  private static final String autoRedMiddle = "Red Middle";
+  private static final String autoRedLeft = "Red Left";
 
-  private static final String autoBlueRight = "Blue Right (Reef) 20";
-  private static final String autoBlueMiddle = "Blue Middle 21";
-  private static final String autoBlueLeft = "Blue Left 22";
+  private static final String autoBlueRight = "Blue Right (Blue Reef)";
+  private static final String autoBlueMiddle = "Blue Middle";
+  private static final String autoBlueLeft = "Blue Left";
 
   public void autonomousOptionSetup() {
     SmartDashboard.putStringArray("Auto List", new String[] {
@@ -265,26 +265,51 @@ public class Robot extends TimedRobot {
     });
   }
 
+  private Command autoDefaultCommand() {
+    return park();
+  }
+
+  private Command autoRightCommand(int aprilTag) {
+    return Commands.sequence(
+        driveForTime(2.2, 0.5),
+        turnDegrees(-45),
+        seekAprilTagAhead(aprilTag)
+            .raceWith(new WaitCommand(5)),
+        new WaitCommand(1),
+        coralYeeter(), // YEET
+        new WaitCommand(1),
+        driveForTime(1, -.5),
+        park());
+  }
+
+  private Command autoMiddleCommand(int aprilTag) {
+    return park();
+  }
+
+  private Command autoLeftCommand(int aprilTag) {
+    return park();
+  }
+
   /** This function is run once each time the robot enters autonomous mode. */
   @Override
   public void autonomousInit() {
 
-    String autoName = SmartDashboard.getString("Auto Selector", autoDefault);
+    final String autoName = SmartDashboard.getString("Auto Selector", autoDefault);
     System.out.println("RUNNING AUTONOMOUS " + autoName);
 
-    CommandScheduler.getInstance().schedule(//
-        Commands.sequence(
-            driveForTime(2.2, 0.5),             //Drive Forward
-            turnDegrees(-45),                   //Turn Left 45 degrees
-            seekAprilTagAhead(11)//             //Seek April Tag 11
-                .raceWith(new WaitCommand(5)),    //For up to 5 seconds
-            new WaitCommand(1),                 //Wait a second
-            coralYeeter(),                      //YEET
-            new WaitCommand(1),                 //Wait a second
-            driveForTime(1, -.5),               //Back up
-            park()                              //Stop movement
-        ));
+    final Command autoCommand = switch (autoName) {
+      case autoRedRight -> autoRightCommand(11);
+      case autoRedMiddle -> autoMiddleCommand(10);
+      case autoRedLeft -> autoLeftCommand(9);
 
+      case autoBlueRight -> autoRightCommand(20);
+      case autoBlueMiddle -> autoMiddleCommand(21);
+      case autoBlueLeft -> autoLeftCommand(22);
+
+      default -> autoDefaultCommand();
+    };
+
+    CommandScheduler.getInstance().schedule(autoCommand);
 
   }
 
