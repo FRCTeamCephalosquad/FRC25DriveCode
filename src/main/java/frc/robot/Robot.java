@@ -91,7 +91,7 @@ public class Robot extends TimedRobot {
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
 
-    //Auto Information
+    // Auto Information
     SmartDashboard.putString("Selected Auto:", auto_chooser.getSelected());
 
     // Send Gyro Information
@@ -288,8 +288,10 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData("Auto choices", auto_chooser);
   }
 
-  private Command autoDefaultCommand() {
-    return park();
+  private Command autoLeaveLine() {
+    return Commands.sequence(
+        driveForTime(2, 0.5),
+        park());
   }
 
   private Command autoRightCommand(int aprilTag) {
@@ -306,11 +308,26 @@ public class Robot extends TimedRobot {
   }
 
   private Command autoMiddleCommand(int aprilTag) {
-    return park();
+    return Commands.sequence(
+        driveForTime(4, 0.5),
+        seekAprilTagAhead(aprilTag)
+            .raceWith(new WaitCommand(5)),
+        new WaitCommand(1),
+        driveForTime(1, -.5),
+        park());
   }
 
   private Command autoLeftCommand(int aprilTag) {
-    return park();
+    return Commands.sequence(
+        driveForTime(2.2, 0.5),
+        turnDegrees(45),
+        seekAprilTagAhead(aprilTag)
+            .raceWith(new WaitCommand(5)),
+        new WaitCommand(1),
+        coralYeeter(),
+        new WaitCommand(1),
+        driveForTime(1, -.5),
+        park());
   }
 
   /** This function is run once each time the robot enters autonomous mode. */
@@ -328,7 +345,7 @@ public class Robot extends TimedRobot {
       case autoBlueMiddle -> autoMiddleCommand(21);
       case autoBlueLeft -> autoLeftCommand(22);
 
-      default -> autoDefaultCommand();
+      default -> autoLeaveLine();
     };
 
     CommandScheduler.getInstance().schedule(autoCommand);
