@@ -13,6 +13,8 @@ import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 
 import edu.wpi.first.util.sendable.SendableRegistry;
+import edu.wpi.first.wpilibj.PowerDistribution;
+import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
@@ -52,6 +54,9 @@ public class Robot extends TimedRobot {
   private final AHRS gyro = new AHRS(NavXComType.kUSB1);
   private final Vision vision = new Vision();
 
+  // Power
+  PowerDistribution pdu = new PowerDistribution(1, ModuleType.kRev);
+
   /**
    * Set up the robot, this is called ONCE when the robot code starts
    */
@@ -85,6 +90,23 @@ public class Robot extends TimedRobot {
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
+
+    //Auto Information
+    SmartDashboard.putString("Selected Auto:", auto_chooser.getSelected());
+
+    // Send Gyro Information
+    SmartDashboard.putNumber("Gyro", gyro.getYaw());
+
+    // Send power information
+    SmartDashboard.putNumber("Voltage", pdu.getVoltage());
+    SmartDashboard.putNumber("Total Current", pdu.getTotalCurrent());
+
+    SmartDashboard.putNumber("Drive R1 (Red) Current", pdu.getCurrent(10));
+    SmartDashboard.putNumber("Drive R2 (Black) Current", pdu.getCurrent(8));
+    SmartDashboard.putNumber("Drive L1 (Blue) Current", pdu.getCurrent(11));
+    SmartDashboard.putNumber("Drive L2 (Yellow) Current", pdu.getCurrent(9));
+
+    SmartDashboard.putNumber("Yeeter Motor", pdu.getCurrent(19));
   }
 
   /**
@@ -253,16 +275,17 @@ public class Robot extends TimedRobot {
   private static final String autoBlueMiddle = "Blue Middle";
   private static final String autoBlueLeft = "Blue Left";
 
+  private final SendableChooser<String> auto_chooser = new SendableChooser<>();
+
   public void autonomousOptionSetup() {
-    SmartDashboard.putStringArray("Auto List", new String[] {
-        autoDefault,
-        autoRedRight,
-        autoRedMiddle,
-        autoRedLeft,
-        autoBlueRight,
-        autoBlueMiddle,
-        autoBlueLeft
-    });
+    auto_chooser.setDefaultOption(autoDefault, autoDefault);
+    auto_chooser.addOption(autoRedRight, autoRedRight);
+    auto_chooser.addOption(autoRedMiddle, autoRedMiddle);
+    auto_chooser.addOption(autoRedLeft, autoRedLeft);
+    auto_chooser.addOption(autoBlueRight, autoBlueRight);
+    auto_chooser.addOption(autoBlueMiddle, autoBlueMiddle);
+    auto_chooser.addOption(autoBlueLeft, autoBlueLeft);
+    SmartDashboard.putData("Auto choices", auto_chooser);
   }
 
   private Command autoDefaultCommand() {
@@ -294,8 +317,7 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousInit() {
 
-    final String autoName = SmartDashboard.getString("Auto Selector", autoDefault);
-    System.out.println("RUNNING AUTONOMOUS " + autoName);
+    final String autoName = auto_chooser.getSelected();
 
     final Command autoCommand = switch (autoName) {
       case autoRedRight -> autoRightCommand(11);

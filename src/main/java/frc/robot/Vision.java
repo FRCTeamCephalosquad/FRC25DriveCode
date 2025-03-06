@@ -10,6 +10,7 @@ import org.opencv.imgproc.Imgproc;
 import edu.wpi.first.apriltag.AprilTagDetector;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Vision {
     private Thread m_visionThread;
@@ -79,16 +80,15 @@ public class Vision {
                     var aprilTagDetector = new AprilTagDetector();
 
                     var config = aprilTagDetector.getConfig();
-                    //config.quadSigma = 0.8f;
-
+                    // config.quadSigma = 0.8f;
 
                     aprilTagDetector.setConfig(config);
 
-                   // var quadThreshParams = aprilTagDetector.getQuadThresholdParameters();
-                   // quadThreshParams.minClusterPixels = 250;
-                  //  quadThreshParams.criticalAngle *= 5; // default is 10
-                   // quadThreshParams.maxLineFitMSE *= 1.5;
-                   // aprilTagDetector.setQuadThresholdParameters(quadThreshParams);
+                    // var quadThreshParams = aprilTagDetector.getQuadThresholdParameters();
+                    // quadThreshParams.minClusterPixels = 250;
+                    // quadThreshParams.criticalAngle *= 5; // default is 10
+                    // quadThreshParams.maxLineFitMSE *= 1.5;
+                    // aprilTagDetector.setQuadThresholdParameters(quadThreshParams);
 
                     aprilTagDetector.addFamily("tag36h11", 1);
 
@@ -149,9 +149,12 @@ public class Vision {
                         }
 
                         if (timer.advanceIfElapsed(1.0)) {
-                            System.out.println("detections per second: " + String.valueOf(count));
+                            SmartDashboard.putNumber("AprilTag Detections per Second", count);
                             count = 0;
                         }
+                        SmartDashboard.putNumber("Seeking Tag", target);
+                        SmartDashboard.putNumber("Tag Location", where);
+                        SmartDashboard.putBoolean("Tag Visible", isTargetInSight());
 
                         outputStream.putFrame(mat);
                     }
