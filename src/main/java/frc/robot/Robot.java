@@ -64,23 +64,35 @@ public class Robot extends TimedRobot {
     SendableRegistry.addChild(m_robotDrive, m_leftDrive);
     SendableRegistry.addChild(m_robotDrive, m_rightDrive);
 
+    final double NOMINAL_VOLTAGE = 11.0;
+
+    // Right Motor
+    SparkMaxConfig rightConfig = new SparkMaxConfig();
+    rightConfig.voltageCompensation(NOMINAL_VOLTAGE);
+    m_rightDrive.configure(rightConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
     // Set up right follower
     SparkMaxConfig rightFollowConfig = new SparkMaxConfig();
     rightFollowConfig.follow(m_rightDrive);
+    rightFollowConfig.voltageCompensation(NOMINAL_VOLTAGE);
     m_rightDriveFollower.configure(rightFollowConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+
+    // left Motor
+    SparkMaxConfig leftConfig = new SparkMaxConfig();
+    leftConfig.voltageCompensation(NOMINAL_VOLTAGE);
+    leftConfig.inverted(true);
+    m_leftDrive.configure(leftConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
     // Set up left follower
     SparkMaxConfig leftFollowConfig = new SparkMaxConfig();
     leftFollowConfig.follow(m_leftDrive);
+    leftFollowConfig.voltageCompensation(NOMINAL_VOLTAGE);
     m_leftDriveFollower.configure(leftFollowConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-
-    // We need to invert one side of the drivetrain so that positive voltages
-    // result in both sides moving forward. Depending on how your robot's
-    // gearbox is constructed, you might have to invert the left side instead.
-    m_leftDrive.setInverted(true);
 
     vision.start();
 
+    gyro.resetDisplacement();
+    gyro.zeroYaw();
     autonomousOptionSetup();
   }
 
@@ -116,6 +128,31 @@ public class Robot extends TimedRobot {
     return Commands.sequence(
         new RunCommand(() -> m_robotDrive.arcadeDrive(speed, 0.0, false)).raceWith(new WaitCommand(time)),
         new InstantCommand(() -> m_robotDrive.arcadeDrive(0, 0.0, false)));
+  }
+
+  Command driveDistance(double meters, double speed) {
+    return new Command() {
+      @Override
+      public void initialize() {
+        gyro.resetDisplacement();
+      }
+
+      @Override
+      public void execute() {
+        m_robotDrive.arcadeDrive(speed, 0.0, false);
+      }
+
+      @Override
+      public boolean isFinished() {
+        return gyro.getDisplacementY() >= meters;
+      }
+
+      @Override
+      public void end(boolean interrupted) {
+        m_robotDrive.arcadeDrive(0.0, 0.0, false);
+      }
+    };
+
   }
 
   /**
@@ -296,10 +333,10 @@ public class Robot extends TimedRobot {
 
   private Command autoRightCommand(int aprilTag) {
     return Commands.sequence(
-        driveForTime(2.2, 0.5),
+        driveForTime(2, 0.5),
         turnDegrees(-45),
         seekAprilTagAhead(aprilTag)
-            .raceWith(new WaitCommand(5)),
+            .raceWith(new WaitCommand(7)),
         new WaitCommand(1),
         coralYeeter(), // YEET
         new WaitCommand(1),
@@ -309,9 +346,11 @@ public class Robot extends TimedRobot {
 
   private Command autoMiddleCommand(int aprilTag) {
     return Commands.sequence(
-        driveForTime(4, 0.5),
+        driveForTime(1, 0.5),
         seekAprilTagAhead(aprilTag)
-            .raceWith(new WaitCommand(5)),
+            .raceWith(new WaitCommand(3)),
+            new WaitCommand(1),
+        coralYeeter(), // YEET
         new WaitCommand(1),
         driveForTime(1, -.5),
         park());
@@ -319,10 +358,10 @@ public class Robot extends TimedRobot {
 
   private Command autoLeftCommand(int aprilTag) {
     return Commands.sequence(
-        driveForTime(2.2, 0.5),
+        driveForTime(2, 0.5),
         turnDegrees(45),
         seekAprilTagAhead(aprilTag)
-            .raceWith(new WaitCommand(5)),
+            .raceWith(new WaitCommand(7)),
         new WaitCommand(1),
         coralYeeter(),
         new WaitCommand(1),
@@ -395,9 +434,8 @@ public class Robot extends TimedRobot {
     if (m_controller.getRightBumperButton()) {
       // Eject coral into level 1
       m_coralFeeder.set(-0.25);
-    } else if (m_controller.getLeftBumperButton()) {
-      // TEST eject coral to level 2?
-      // m_coralFeeder.set(0.5);
+    } else if (m_controller.getBButton()) {
+      m_coralFeeder.set(0.3);
     } else {
       // stop
       m_coralFeeder.set(0);
@@ -405,43 +443,16 @@ public class Robot extends TimedRobot {
     }
   }
 
-  /** This function is called once each time the robot enters test mode. */
+
   @Override
   public void testInit() {
-    m_robotDrive.setDeadband(0);
+
   }
 
-  /** This function is called periodically during test mode. */
+
   @Override
   public void testPeriodic() {
-    SmartDashboard.putBoolean("DB/LED 0", gyro.isConnected());
-    SmartDashboard.putString("DB/String 0", gyro.getYaw() + "");
 
-    if (m_controller.getPOV() == 0) {
-      // m_robotDrive.arcadeDrive(0.6, 0, false);
-    } else if (m_controller.getYButton()) {
-      m_robotDrive.setDeadband(0);
-      if (vision.isTargetInSight()) {
-        System.out.println(vision.targetPosition());
-        double targetOffset = -vision.targetPosition();
-        double turn = 0;
-        if (targetOffset > .3) {
-          turn = .5;
-        } else if (targetOffset < -.3) {
-          turn = -.5;
-        } else if (targetOffset > .1) {
-          turn = .3;
-        } else if (targetOffset < -.1) {
-          turn = -.3;
-        }
-        // turn = clamp(Math.sqrt(turn), -.9, .9);
-        m_robotDrive.arcadeDrive(0.5, turn, false);
-      } else {
-        m_robotDrive.arcadeDrive(0.4, 0, false);
-      }
-    } else {
-      teleopPeriodic();
-    }
   }
 
   @Override

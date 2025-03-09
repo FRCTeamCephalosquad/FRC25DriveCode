@@ -145,7 +145,7 @@ public class Vision {
                         where = w;
 
                         for (var id : set) {
-                            System.out.println("Tag: " + String.valueOf(id));
+                            //System.out.println("Tag: " + String.valueOf(id));
                         }
 
                         if (timer.advanceIfElapsed(1.0)) {
