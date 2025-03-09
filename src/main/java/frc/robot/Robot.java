@@ -13,6 +13,9 @@ import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 
 import edu.wpi.first.util.sendable.SendableRegistry;
+import edu.wpi.first.wpilibj.AddressableLED;
+import edu.wpi.first.wpilibj.AddressableLEDBuffer;
+import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -21,6 +24,7 @@ import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.drive.RobotDriveBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -56,6 +60,9 @@ public class Robot extends TimedRobot {
 
   // Power
   PowerDistribution pdu = new PowerDistribution(1, ModuleType.kRev);
+
+  private final AddressableLED m_led;
+  private final AddressableLEDBuffer m_ledBuffer;
 
   /**
    * Set up the robot, this is called ONCE when the robot code starts
@@ -94,6 +101,26 @@ public class Robot extends TimedRobot {
     gyro.resetDisplacement();
     gyro.zeroYaw();
     autonomousOptionSetup();
+
+    // PWM port 9
+    // Must be a PWM header, not MXP or DIO
+    m_led = new AddressableLED(9);
+
+    // Reuse buffer
+    // Default to a length of 60, start empty output
+    // Length is expensive to set, so only set it once, then just update data
+    m_ledBuffer = new AddressableLEDBuffer(270);
+    m_led.setLength(m_ledBuffer.getLength());
+
+    // Create an LED pattern that sets the entire strip to solid red
+    LEDPattern red = LEDPattern.solid(Color.kRed);
+
+    // Apply the LED pattern to the data buffer
+    red.applyTo(m_ledBuffer);
+
+    // Set the data
+    m_led.setData(m_ledBuffer);
+    m_led.start();
   }
 
   /**
@@ -349,7 +376,7 @@ public class Robot extends TimedRobot {
         driveForTime(1, 0.5),
         seekAprilTagAhead(aprilTag)
             .raceWith(new WaitCommand(3)),
-            new WaitCommand(1),
+        new WaitCommand(1),
         coralYeeter(), // YEET
         new WaitCommand(1),
         driveForTime(1, -.5),
@@ -443,12 +470,10 @@ public class Robot extends TimedRobot {
     }
   }
 
-
   @Override
   public void testInit() {
 
   }
-
 
   @Override
   public void testPeriodic() {
