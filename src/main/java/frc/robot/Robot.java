@@ -15,6 +15,7 @@ import com.studica.frc.AHRS.NavXComType;
 import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
+import edu.wpi.first.wpilibj.AddressableLEDBufferView;
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
@@ -61,8 +62,7 @@ public class Robot extends TimedRobot {
   // Power
   PowerDistribution pdu = new PowerDistribution(1, ModuleType.kRev);
 
-  private final AddressableLED m_led;
-  private final AddressableLEDBuffer m_ledBuffer;
+
 
   /**
    * Set up the robot, this is called ONCE when the robot code starts
@@ -102,25 +102,43 @@ public class Robot extends TimedRobot {
     gyro.zeroYaw();
     autonomousOptionSetup();
 
-    // PWM port 9
-    // Must be a PWM header, not MXP or DIO
-    m_led = new AddressableLED(9);
+ledSetup();
 
+  }
+
+  private final AddressableLED m_led = new AddressableLED(9);
+  private final AddressableLEDBuffer m_ledBuffer = new AddressableLEDBuffer(270);
+
+
+
+  AddressableLEDBufferView rearLeftLEDs = m_ledBuffer.createView(0, 36);
+  AddressableLEDBufferView sideLeftLEDs = m_ledBuffer.createView(37, 77);
+  AddressableLEDBufferView frontLEDs = m_ledBuffer.createView(78, 114);
+  AddressableLEDBufferView sideRightLEDs = m_ledBuffer.createView(115, 155);
+  AddressableLEDBufferView rearRightLEDs = m_ledBuffer.createView(156, 189);
+  AddressableLEDBufferView rearLEDs = m_ledBuffer.createView(190, 269);
+  
+  private void ledSetup() {
     // Reuse buffer
     // Default to a length of 60, start empty output
     // Length is expensive to set, so only set it once, then just update data
-    m_ledBuffer = new AddressableLEDBuffer(270);
+
     m_led.setLength(m_ledBuffer.getLength());
 
-    // Create an LED pattern that sets the entire strip to solid red
-    LEDPattern red = LEDPattern.solid(Color.kRed);
-
-    // Apply the LED pattern to the data buffer
-    red.applyTo(m_ledBuffer);
+    LEDPattern.solid(Color.kRed).applyTo(rearLeftLEDs);
+    LEDPattern.solid(Color.kBlue).applyTo(sideLeftLEDs);
+    LEDPattern.solid(Color.kGreen).applyTo(frontLEDs);
+    LEDPattern.solid(Color.kBlue).applyTo(sideRightLEDs);
+    LEDPattern.solid(Color.kRed).applyTo(rearRightLEDs);
+    LEDPattern.solid(Color.kPurple).applyTo(rearLEDs);
 
     // Set the data
     m_led.setData(m_ledBuffer);
     m_led.start();
+  }
+
+  private void ledPeriodic() {
+
   }
 
   /**
@@ -129,6 +147,8 @@ public class Robot extends TimedRobot {
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
+
+    ledPeriodic();
 
     // Auto Information
     SmartDashboard.putString("Selected Auto:", auto_chooser.getSelected());
@@ -146,6 +166,8 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Drive L2 (Yellow) Current", pdu.getCurrent(9));
 
     SmartDashboard.putNumber("Yeeter Motor", pdu.getCurrent(19));
+
+    SmartDashboard.putNumber("LED Current", pdu.getCurrent(1));
   }
 
   /**
