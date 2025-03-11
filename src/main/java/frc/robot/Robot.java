@@ -12,15 +12,21 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.AddressableLEDBufferView;
+import edu.wpi.first.wpilibj.AnalogInput;
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.LEDPattern.GradientType;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.drive.RobotDriveBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -59,10 +65,11 @@ public class Robot extends TimedRobot {
   private final AHRS gyro = new AHRS(NavXComType.kUSB1);
   private final Vision vision = new Vision();
 
+  private final AnalogInput wheelSensorA = new AnalogInput(0);
+  private final Debouncer wheelDebouncer = new Debouncer(.05, DebounceType.kBoth);
+
   // Power
   PowerDistribution pdu = new PowerDistribution(1, ModuleType.kRev);
-
-
 
   /**
    * Set up the robot, this is called ONCE when the robot code starts
@@ -102,22 +109,20 @@ public class Robot extends TimedRobot {
     gyro.zeroYaw();
     autonomousOptionSetup();
 
-ledSetup();
+    ledSetup();
 
   }
 
   private final AddressableLED m_led = new AddressableLED(9);
   private final AddressableLEDBuffer m_ledBuffer = new AddressableLEDBuffer(270);
 
-
-
   AddressableLEDBufferView rearLeftLEDs = m_ledBuffer.createView(0, 36);
   AddressableLEDBufferView sideLeftLEDs = m_ledBuffer.createView(37, 77);
   AddressableLEDBufferView frontLEDs = m_ledBuffer.createView(78, 114);
-  AddressableLEDBufferView sideRightLEDs = m_ledBuffer.createView(115, 155);
-  AddressableLEDBufferView rearRightLEDs = m_ledBuffer.createView(156, 189);
+  AddressableLEDBufferView sideRightLEDs = m_ledBuffer.createView(115, 155).reversed();
+  AddressableLEDBufferView rearRightLEDs = m_ledBuffer.createView(156, 189).reversed();
   AddressableLEDBufferView rearLEDs = m_ledBuffer.createView(190, 269);
-  
+
   private void ledSetup() {
     // Reuse buffer
     // Default to a length of 60, start empty output
@@ -130,15 +135,15 @@ ledSetup();
     LEDPattern.solid(Color.kGreen).applyTo(frontLEDs);
     LEDPattern.solid(Color.kBlue).applyTo(sideRightLEDs);
     LEDPattern.solid(Color.kRed).applyTo(rearRightLEDs);
-    LEDPattern.solid(Color.kPurple).applyTo(rearLEDs);
+    LEDPattern.rainbow(255, 255).applyTo(rearLEDs);
 
     // Set the data
-    m_led.setData(m_ledBuffer);
+
     m_led.start();
   }
 
   private void ledPeriodic() {
-
+    m_led.setData(m_ledBuffer);
   }
 
   /**
@@ -211,6 +216,29 @@ ledSetup();
     return Commands.sequence(
         new RunCommand(() -> m_robotDrive.arcadeDrive(0, turn, false)).raceWith(new WaitCommand(time)),
         new InstantCommand(() -> m_robotDrive.arcadeDrive(0, 0.0, false)));
+  }
+
+  Command dramaticWait(double duration) {
+    return new Command() {
+      Timer timer = new Timer();
+      LEDPattern pattern = LEDPattern.progressMaskLayer(() -> timer.get() / duration);
+      LEDPattern basePattern = LEDPattern.gradient(GradientType.kContinuous, Color.kRed, Color.kBlue);
+
+      public void initialize() {
+        timer.start();
+      };
+
+      @Override
+      public void execute() {
+        basePattern.mask(pattern).applyTo(sideLeftLEDs);
+        basePattern.mask(pattern).applyTo(sideRightLEDs);
+      }
+
+      @Override
+      public boolean isFinished() {
+        return timer.get() >= duration;
+      }
+    };
   }
 
   /**
@@ -386,7 +414,7 @@ ledSetup();
         turnDegrees(-45),
         seekAprilTagAhead(aprilTag)
             .raceWith(new WaitCommand(7)),
-        new WaitCommand(1),
+        dramaticWait(1),
         coralYeeter(), // YEET
         new WaitCommand(1),
         driveForTime(1, -.5),
@@ -398,7 +426,7 @@ ledSetup();
         driveForTime(1, 0.5),
         seekAprilTagAhead(aprilTag)
             .raceWith(new WaitCommand(3)),
-        new WaitCommand(1),
+        dramaticWait(1),
         coralYeeter(), // YEET
         new WaitCommand(1),
         driveForTime(1, -.5),
@@ -411,7 +439,7 @@ ledSetup();
         turnDegrees(45),
         seekAprilTagAhead(aprilTag)
             .raceWith(new WaitCommand(7)),
-        new WaitCommand(1),
+        dramaticWait(1),
         coralYeeter(),
         new WaitCommand(1),
         driveForTime(1, -.5),
@@ -497,9 +525,23 @@ ledSetup();
 
   }
 
+  boolean whatWasItLastTime;
+  int howManyTimesDidItChange = 0;
+
   @Override
   public void testPeriodic() {
+    if (m_controller.getXButtonPressed()) {
+      //CommandScheduler.getInstance().schedule(arcadeDrama(1));
+    }
 
+    boolean whatItIsNow = wheelDebouncer.calculate(wheelSensorA.getValue() > 1500);
+
+    if (whatItIsNow != whatWasItLastTime) {
+      System.out.println("It Changed!");
+      howManyTimesDidItChange = howManyTimesDidItChange + 1;
+    }
+    System.out.println("It changed " + howManyTimesDidItChange + " times");
+    whatWasItLastTime = whatItIsNow;
   }
 
   @Override
