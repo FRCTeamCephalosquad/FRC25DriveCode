@@ -417,7 +417,7 @@ public class Robot extends TimedRobot {
         dramaticWait(1),
         coralYeeter(), // YEET
         new WaitCommand(1),
-        driveForTime(1, -.5),
+        driveForTime(.2, -.5),
         park());
   }
 
@@ -429,7 +429,7 @@ public class Robot extends TimedRobot {
         dramaticWait(1),
         coralYeeter(), // YEET
         new WaitCommand(1),
-        driveForTime(1, -.5),
+        driveForTime(.1, -.5),
         park());
   }
 
@@ -442,7 +442,7 @@ public class Robot extends TimedRobot {
         dramaticWait(1),
         coralYeeter(),
         new WaitCommand(1),
-        driveForTime(1, -.5),
+        driveForTime(.2, -.5),
         park());
   }
 
@@ -531,7 +531,7 @@ public class Robot extends TimedRobot {
   @Override
   public void testPeriodic() {
     if (m_controller.getXButtonPressed()) {
-      //CommandScheduler.getInstance().schedule(arcadeDrama(1));
+      CommandScheduler.getInstance().schedule(dramaticWait(1));
     }
 
     boolean whatItIsNow = wheelDebouncer.calculate(wheelSensorA.getValue() > 1500);

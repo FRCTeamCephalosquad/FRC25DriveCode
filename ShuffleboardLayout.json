@@ -248,6 +248,19 @@
               "_glyph": 148,
               "_showGlyph": false
             }
+          },
+          "5,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/LED Current",
+              "_title": "/SmartDashboard/LED Current",
+              "_glyph": 148,
+              "_showGlyph": false
+            }
           }
         }
       }
