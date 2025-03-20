@@ -4,6 +4,9 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Inches;
+import static edu.wpi.first.units.Units.Meters;
+
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
@@ -12,11 +15,11 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 
-
 import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.AddressableLEDBufferView;
+import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
@@ -62,6 +65,9 @@ public class Robot extends TimedRobot {
   private final AHRS gyro = new AHRS(NavXComType.kUSB1);
   private final Vision vision = new Vision();
 
+  private final Encoder leftEncoder = new Encoder(0, 1);
+  private final Encoder rightEncoder = new Encoder(2, 3);
+
   // Power
   PowerDistribution pdu = new PowerDistribution(1, ModuleType.kRev);
 
@@ -105,6 +111,15 @@ public class Robot extends TimedRobot {
 
     ledSetup();
 
+    {
+      //Encoder Setup
+      final double wheelRadiusM = Inches.of(6).in(Meters);
+      final double wheelCircumfrenceM = wheelRadiusM * Math.PI;
+      final int ppr = 128;
+      final double metersPerPulse = wheelCircumfrenceM / ppr;
+      leftEncoder.setDistancePerPulse(metersPerPulse);
+      rightEncoder.setDistancePerPulse(metersPerPulse);
+    }
   }
 
   private final AddressableLED m_led = new AddressableLED(9);
@@ -516,15 +531,13 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testInit() {
-
+    leftEncoder.reset();
+    rightEncoder.reset();
   }
-
-  boolean whatWasItLastTime;
-  int howManyTimesDidItChange = 0;
 
   @Override
   public void testPeriodic() {
-
+    System.out.printf("R: %.2f L: %.2f\n", rightEncoder.getDistance(), leftEncoder.getDistance() );
   }
 
   @Override
