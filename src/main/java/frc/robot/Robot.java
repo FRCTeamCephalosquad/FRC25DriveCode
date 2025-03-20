@@ -233,11 +233,15 @@ public class Robot extends TimedRobot {
   Command turnDegrees(double degrees) {
     final double SLOW_TURN = 0.6; // When we are close go this fast
     final double FAST_TURN = 0.7; // If we are further, go this fast
+    
+    final double MAX = 0.4;
 
     // gyro Positive is right
     // Gyro jumps from 180 to -180
     return new Command() {
       boolean done = false;
+
+      PIDController pid = new PIDController(0.04, 0, 0.008);
 
       /**
        * When this command starts it sets the control deadband to
@@ -250,6 +254,12 @@ public class Robot extends TimedRobot {
 
       @Override
       public void execute() {
+        double s = pid.calculate(gyro.getYaw(), degrees);
+
+        s = Math.max(-MAX, Math.min(MAX, s));
+
+        drive.arcadeDrive(0, -s);
+        /* 
         // How far are we from the direction we want to go?
         double error = degrees - gyro.getYaw();
 
@@ -269,7 +279,7 @@ public class Robot extends TimedRobot {
         if (Math.abs(error) < 10) {
           done = true;
         }
-
+        */
       }
 
       /*
@@ -502,6 +512,9 @@ public class Robot extends TimedRobot {
   public void testPeriodic() {
     if (m_controller.getYButtonPressed()) {
       CommandScheduler.getInstance().schedule(driveDistance(4, 0.4));
+    }
+    if ( m_controller.getBButtonPressed() ){
+      CommandScheduler.getInstance().schedule(turnDegrees(90));
     }
   }
 
