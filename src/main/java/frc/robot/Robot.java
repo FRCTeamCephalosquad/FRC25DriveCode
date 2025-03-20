@@ -4,22 +4,18 @@
 
 package frc.robot;
 
-import static edu.wpi.first.units.Units.Inches;
-import static edu.wpi.first.units.Units.Meters;
-
 import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.SparkBase.PersistMode;
-import com.revrobotics.spark.SparkBase.ResetMode;
+
 import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.SparkMaxConfig;
+
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 
-import edu.wpi.first.util.sendable.SendableRegistry;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.AddressableLEDBufferView;
-import edu.wpi.first.wpilibj.Encoder;
+
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
@@ -27,10 +23,10 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.LEDPattern.GradientType;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.drive.RobotDriveBase;
+
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.sysid.SysIdRoutineLog;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -38,6 +34,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 
 /**
  * The methods in this class are called automatically corresponding to each
@@ -48,15 +45,11 @@ import edu.wpi.first.wpilibj2.command.WaitCommand;
  * directory.
  */
 public class Robot extends TimedRobot {
-  // Drive Motors
-  private final SparkMax m_leftDrive = new SparkMax(2, MotorType.kBrushed);
-  private final SparkMax m_rightDrive = new SparkMax(3, MotorType.kBrushed);
-  private final SparkMax m_leftDriveFollower = new SparkMax(4, MotorType.kBrushed);
-  private final SparkMax m_rightDriveFollower = new SparkMax(5, MotorType.kBrushed);
 
-  // Drive Control
-  private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftDrive::set, m_rightDrive::set);
+  // Controller
   private final XboxController m_controller = new XboxController(0);
+
+  DriveSubsystem drive = new DriveSubsystem();
 
   // Coral Motor
   private final SparkMax m_coralFeeder = new SparkMax(6, MotorType.kBrushless);
@@ -65,9 +58,6 @@ public class Robot extends TimedRobot {
   private final AHRS gyro = new AHRS(NavXComType.kUSB1);
   private final Vision vision = new Vision();
 
-  private final Encoder leftEncoder = new Encoder(0, 1);
-  private final Encoder rightEncoder = new Encoder(2, 3);
-
   // Power
   PowerDistribution pdu = new PowerDistribution(1, ModuleType.kRev);
 
@@ -75,33 +65,6 @@ public class Robot extends TimedRobot {
    * Set up the robot, this is called ONCE when the robot code starts
    */
   public Robot() {
-    SendableRegistry.addChild(m_robotDrive, m_leftDrive);
-    SendableRegistry.addChild(m_robotDrive, m_rightDrive);
-
-    final double NOMINAL_VOLTAGE = 11.0;
-
-    // Right Motor
-    SparkMaxConfig rightConfig = new SparkMaxConfig();
-    rightConfig.voltageCompensation(NOMINAL_VOLTAGE);
-    m_rightDrive.configure(rightConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-
-    // Set up right follower
-    SparkMaxConfig rightFollowConfig = new SparkMaxConfig();
-    rightFollowConfig.follow(m_rightDrive);
-    rightFollowConfig.voltageCompensation(NOMINAL_VOLTAGE);
-    m_rightDriveFollower.configure(rightFollowConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-
-    // left Motor
-    SparkMaxConfig leftConfig = new SparkMaxConfig();
-    leftConfig.voltageCompensation(NOMINAL_VOLTAGE);
-    leftConfig.inverted(true);
-    m_leftDrive.configure(leftConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-
-    // Set up left follower
-    SparkMaxConfig leftFollowConfig = new SparkMaxConfig();
-    leftFollowConfig.follow(m_leftDrive);
-    leftFollowConfig.voltageCompensation(NOMINAL_VOLTAGE);
-    m_leftDriveFollower.configure(leftFollowConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
     vision.start();
 
@@ -111,15 +74,6 @@ public class Robot extends TimedRobot {
 
     ledSetup();
 
-    {
-      //Encoder Setup
-      final double wheelRadiusM = Inches.of(6).in(Meters);
-      final double wheelCircumfrenceM = wheelRadiusM * Math.PI;
-      final int ppr = 128;
-      final double metersPerPulse = wheelCircumfrenceM / ppr;
-      leftEncoder.setDistancePerPulse(metersPerPulse);
-      rightEncoder.setDistancePerPulse(metersPerPulse);
-    }
   }
 
   private final AddressableLED m_led = new AddressableLED(9);
@@ -189,8 +143,8 @@ public class Robot extends TimedRobot {
    */
   Command driveForTime(double time, double speed) {
     return Commands.sequence(
-        new RunCommand(() -> m_robotDrive.arcadeDrive(speed, 0.0, false)).raceWith(new WaitCommand(time)),
-        new InstantCommand(() -> m_robotDrive.arcadeDrive(0, 0.0, false)));
+        new RunCommand(() -> drive.arcadeDrive(speed, 0.0)).raceWith(new WaitCommand(time)),
+        new InstantCommand(() -> drive.arcadeDrive(0, 0.0)));
   }
 
   Command driveDistance(double meters, double speed) {
@@ -202,7 +156,7 @@ public class Robot extends TimedRobot {
 
       @Override
       public void execute() {
-        m_robotDrive.arcadeDrive(speed, 0.0, false);
+        drive.arcadeDrive(speed, 0.0);
       }
 
       @Override
@@ -212,7 +166,7 @@ public class Robot extends TimedRobot {
 
       @Override
       public void end(boolean interrupted) {
-        m_robotDrive.arcadeDrive(0.0, 0.0, false);
+        drive.arcadeDrive(0.0, 0.0);
       }
     };
 
@@ -223,8 +177,8 @@ public class Robot extends TimedRobot {
    */
   Command turnForTime(double time, double turn) {
     return Commands.sequence(
-        new RunCommand(() -> m_robotDrive.arcadeDrive(0, turn, false)).raceWith(new WaitCommand(time)),
-        new InstantCommand(() -> m_robotDrive.arcadeDrive(0, 0.0, false)));
+        new RunCommand(() -> drive.arcadeDrive(0, turn)).raceWith(new WaitCommand(time)),
+        new InstantCommand(() -> drive.arcadeDrive(0, 0.0)));
   }
 
   Command dramaticWait(double duration) {
@@ -263,7 +217,7 @@ public class Robot extends TimedRobot {
    * Do nothing
    */
   Command park() {
-    return new RunCommand(() -> m_robotDrive.stopMotor());
+    return new RunCommand(() -> drive.stopMotor());
   }
 
   /*
@@ -284,7 +238,6 @@ public class Robot extends TimedRobot {
        */
       @Override
       public void initialize() {
-        m_robotDrive.setDeadband(0);
         gyro.zeroYaw();
       }
 
@@ -303,7 +256,7 @@ public class Robot extends TimedRobot {
           turn *= FAST_TURN;
 
         // Set the turn
-        m_robotDrive.arcadeDrive(0, turn, false);
+        drive.arcadeDrive(0, turn);
 
         // If we are very close, set done to true.
         if (Math.abs(error) < 10) {
@@ -325,8 +278,7 @@ public class Robot extends TimedRobot {
        */
       @Override
       public void end(boolean interrupted) {
-        m_robotDrive.stopMotor();
-        m_robotDrive.setDeadband(RobotDriveBase.kDefaultDeadband);
+        drive.stopMotor();
       }
 
     };
@@ -352,7 +304,6 @@ public class Robot extends TimedRobot {
     return new Command() {
       @Override
       public void initialize() {
-        m_robotDrive.setDeadband(0);
         vision.lookFor(tagId);
       }
 
@@ -373,17 +324,16 @@ public class Robot extends TimedRobot {
             turn = -SLOW_TURN;
           }
 
-          m_robotDrive.arcadeDrive(TAG_SPEED, turn, false);
+          drive.arcadeDrive(TAG_SPEED, turn);
         } else {
           System.out.println("AprilTag not in sight. Moving forward.");
-          m_robotDrive.arcadeDrive(SEARCH_SPEED, 0, false);
+          drive.arcadeDrive(SEARCH_SPEED, 0);
         }
       }
 
       @Override
       public void end(boolean interrupted) {
-        m_robotDrive.setDeadband(RobotDriveBase.kDefaultDeadband);
-        m_robotDrive.stopMotor();
+        drive.stopMotor();
         vision.lookFor(0);
       }
     };
@@ -503,9 +453,9 @@ public class Robot extends TimedRobot {
 
     // Left trigger = slow speed
     if (m_controller.getLeftTriggerAxis() > 0.9) {
-      m_robotDrive.setMaxOutput(0.4);
+      drive.setMaxOutput(0.4);
     } else {
-      m_robotDrive.setMaxOutput(0.6);
+      drive.setMaxOutput(0.6);
     }
 
     // Get forward speed
@@ -513,8 +463,7 @@ public class Robot extends TimedRobot {
     // Left is positive
     double rotateSpeed = -m_controller.getRightX();
 
-    m_robotDrive.setDeadband(RobotDriveBase.kDefaultDeadband);
-    m_robotDrive.arcadeDrive(forwardSpeed, rotateSpeed);
+    drive.arcadeDriveJoystick(forwardSpeed, rotateSpeed);
 
     // Coral YEET Teleop code
     if (m_controller.getRightBumperButton()) {
@@ -529,15 +478,25 @@ public class Robot extends TimedRobot {
     }
   }
 
+  void voltageDrive(Voltage v) {
+
+  }
+
+  void logMotors(SysIdRoutineLog l) {
+
+  }
+
   @Override
   public void testInit() {
-    leftEncoder.reset();
-    rightEncoder.reset();
+
+    SysIdRoutine routine = new SysIdRoutine(
+        new SysIdRoutine.Config(),
+        new SysIdRoutine.Mechanism(this::voltageDrive, this::logMotors, drive));
+
   }
 
   @Override
   public void testPeriodic() {
-    System.out.printf("R: %.2f L: %.2f\n", rightEncoder.getDistance(), leftEncoder.getDistance() );
   }
 
   @Override
