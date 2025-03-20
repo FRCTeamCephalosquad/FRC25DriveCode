@@ -11,6 +11,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
@@ -150,6 +151,7 @@ public class Robot extends TimedRobot {
   }
 
   Command driveDistance(double meters, double speed) {
+    PIDController pid = new PIDController(0.4, 0, 0);
     return new Command() {
       @Override
       public void initialize() {
@@ -158,7 +160,10 @@ public class Robot extends TimedRobot {
 
       @Override
       public void execute() {
-        drive.arcadeDrive(speed, 0.0);
+        double s = pid.calculate(drive.getDistanceForward(), meters);
+        s = Math.max(0.1, s);
+        s = Math.min(speed, s);
+        drive.arcadeDrive(s, 0.0);
       }
 
       @Override
@@ -495,8 +500,8 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
-    if ( m_controller.getYButtonPressed() ){
-      CommandScheduler.getInstance().schedule(driveDistance(2, 0.4));
+    if (m_controller.getYButtonPressed()) {
+      CommandScheduler.getInstance().schedule(driveDistance(4, 0.4));
     }
   }
 
