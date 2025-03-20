@@ -118,6 +118,8 @@ public class Robot extends TimedRobot {
 
     ledPeriodic();
 
+    drive.drivePeriodic();
+
     // Auto Information
     SmartDashboard.putString("Selected Auto:", auto_chooser.getSelected());
 
@@ -151,7 +153,7 @@ public class Robot extends TimedRobot {
     return new Command() {
       @Override
       public void initialize() {
-        gyro.resetDisplacement();
+        drive.resetDistanceForward();
       }
 
       @Override
@@ -161,7 +163,7 @@ public class Robot extends TimedRobot {
 
       @Override
       public boolean isFinished() {
-        return gyro.getDisplacementY() >= meters;
+        return drive.getDistanceForward() >= meters;
       }
 
       @Override
@@ -489,14 +491,13 @@ public class Robot extends TimedRobot {
   @Override
   public void testInit() {
 
-    SysIdRoutine routine = new SysIdRoutine(
-        new SysIdRoutine.Config(),
-        new SysIdRoutine.Mechanism(this::voltageDrive, this::logMotors, drive));
-
   }
 
   @Override
   public void testPeriodic() {
+    if ( m_controller.getYButtonPressed() ){
+      CommandScheduler.getInstance().schedule(driveDistance(2, 0.4));
+    }
   }
 
   @Override

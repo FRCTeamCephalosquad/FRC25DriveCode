@@ -10,6 +10,7 @@ import static edu.wpi.first.units.Units.Meters;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
@@ -24,16 +25,21 @@ public class DriveSubsystem extends SubsystemBase {
     private final SparkMax m_rightDriveFollower = new SparkMax(5, MotorType.kBrushed);
 
     // Drive Control
-    private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftDrive::set, m_rightDrive::set);
+    private final DifferentialDrive m_robotDrive;
 
     // Encoders
 
     private final Encoder leftEncoder = new Encoder(0, 1);
     private final Encoder rightEncoder = new Encoder(2, 3);
 
+    private final PIDController rightPID = new PIDController(0.9, 0.02, 0.05);
+    private final PIDController leftPID = new PIDController(0.9, 0.02, 0.05);
+
+    void drivePeriodic() {
+        System.out.printf("R: %.2f / %.2f L: %.2f / %.2f\n", rightEncoder.getRate(), m_rightDrive.get(), leftEncoder.getRate(), m_leftDrive.get());
+    }
+
     public DriveSubsystem() {
-        SendableRegistry.addChild(m_robotDrive, m_leftDrive);
-        SendableRegistry.addChild(m_robotDrive, m_rightDrive);
 
         final double NOMINAL_VOLTAGE = 11.0;
 
@@ -70,6 +76,20 @@ public class DriveSubsystem extends SubsystemBase {
             leftEncoder.setDistancePerPulse(metersPerPulse);
             rightEncoder.setDistancePerPulse(metersPerPulse);
         }
+
+        rightPID.setIntegratorRange(-0.5, 0.5);
+        leftPID.setIntegratorRange(-0.5, 0.5);
+
+        m_robotDrive = new DifferentialDrive(m_leftDrive::set, m_rightDrive::set);
+    }
+
+    public void resetDistanceForward(){
+        rightEncoder.reset();
+        leftEncoder.reset();
+    }
+
+    public double getDistanceForward(){
+        return ( rightEncoder.getDistance() + leftEncoder.getDistance() ) / 2;
     }
 
     public void setMaxOutput(double m) {
