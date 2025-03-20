@@ -12,14 +12,11 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 
-import edu.wpi.first.math.filter.Debouncer;
-import edu.wpi.first.math.filter.Debouncer.DebounceType;
+
 import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.AddressableLEDBufferView;
-import edu.wpi.first.wpilibj.AnalogInput;
-import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.LEDPattern;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
@@ -64,9 +61,6 @@ public class Robot extends TimedRobot {
   // Navigation Aids
   private final AHRS gyro = new AHRS(NavXComType.kUSB1);
   private final Vision vision = new Vision();
-
-  private final AnalogInput wheelSensorA = new AnalogInput(0);
-  private final Debouncer wheelDebouncer = new Debouncer(.05, DebounceType.kBoth);
 
   // Power
   PowerDistribution pdu = new PowerDistribution(1, ModuleType.kRev);
@@ -530,18 +524,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
-    if (m_controller.getXButtonPressed()) {
-      CommandScheduler.getInstance().schedule(dramaticWait(1));
-    }
 
-    boolean whatItIsNow = wheelDebouncer.calculate(wheelSensorA.getValue() > 1500);
-
-    if (whatItIsNow != whatWasItLastTime) {
-      System.out.println("It Changed!");
-      howManyTimesDidItChange = howManyTimesDidItChange + 1;
-    }
-    System.out.println("It changed " + howManyTimesDidItChange + " times");
-    whatWasItLastTime = whatItIsNow;
   }
 
   @Override

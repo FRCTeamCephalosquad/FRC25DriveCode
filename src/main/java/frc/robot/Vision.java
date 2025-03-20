@@ -144,10 +144,6 @@ public class Vision {
 
                         where = w;
 
-                        for (var id : set) {
-                            //System.out.println("Tag: " + String.valueOf(id));
-                        }
-
                         if (timer.advanceIfElapsed(1.0)) {
                             SmartDashboard.putNumber("AprilTag Detections per Second", count);
                             count = 0;
