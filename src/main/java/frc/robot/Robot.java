@@ -94,12 +94,12 @@ public class Robot extends TimedRobot {
 
     m_led.setLength(m_ledBuffer.getLength());
 
-    LEDPattern.solid(Color.kRed).applyTo(rearLeftLEDs);
-    LEDPattern.solid(Color.kBlue).applyTo(sideLeftLEDs);
-    LEDPattern.solid(Color.kGreen).applyTo(frontLEDs);
-    LEDPattern.solid(Color.kBlue).applyTo(sideRightLEDs);
-    LEDPattern.solid(Color.kRed).applyTo(rearRightLEDs);
-    LEDPattern.rainbow(255, 255).applyTo(rearLEDs);
+    LEDPattern.solid(Color.kBlack).applyTo(rearLeftLEDs);
+    LEDPattern.solid(Color.kGreen).applyTo(sideLeftLEDs);
+    LEDPattern.solid(Color.kBlack).applyTo(frontLEDs);
+    LEDPattern.solid(Color.kRed).applyTo(sideRightLEDs);
+    LEDPattern.solid(Color.kBlack).applyTo(rearRightLEDs);
+    LEDPattern.solid(Color.kBlack).applyTo(rearLEDs);
 
     // Set the data
 
@@ -478,7 +478,7 @@ public class Robot extends TimedRobot {
     // Get forward speed
     double forwardSpeed = -m_controller.getLeftY();
     // Left is positive
-    double rotateSpeed = -m_controller.getRightX();
+    double rotateSpeed = -m_controller.getLeftX();
 
     drive.arcadeDriveJoystick(forwardSpeed, rotateSpeed);
 

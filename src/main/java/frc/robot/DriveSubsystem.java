@@ -36,7 +36,7 @@ public class DriveSubsystem extends SubsystemBase {
     private final PIDController leftPID = new PIDController(0.9, 0.02, 0.05);
 
     void drivePeriodic() {
-        System.out.printf("R: %.2f / %.2f L: %.2f / %.2f\n", rightEncoder.getRate(), m_rightDrive.get(), leftEncoder.getRate(), m_leftDrive.get());
+       // System.out.printf("R: %.2f / %.2f L: %.2f / %.2f\n", rightEncoder.getRate(), m_rightDrive.get(), leftEncoder.getRate(), m_leftDrive.get());
     }
 
     public DriveSubsystem() {
