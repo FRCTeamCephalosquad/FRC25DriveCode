@@ -245,9 +245,9 @@ public class Robot extends TimedRobot {
   /**
    * YEET that coral
    */
-  Command coralYeeter() {
+  Command coralYeeter(double time) {
     return Commands.sequence(
-        new RunCommand(() -> m_coralFeeder.set(-0.2)).raceWith(new WaitCommand(.25)),
+        new RunCommand(() -> m_coralFeeder.set(-0.2)).raceWith(new WaitCommand(time)),
         new InstantCommand(() -> m_coralFeeder.stopMotor()));
   }
 
@@ -262,7 +262,7 @@ public class Robot extends TimedRobot {
    * Turn the robot by a number of degrees, using the gyro
    */
   Command turnDegrees(double degrees) {
-    final double MAX = 0.6;
+    final double MAX = 0.4;
 
     // gyro Positive is right
     // Gyro jumps from 180 to -180
@@ -295,7 +295,7 @@ public class Robot extends TimedRobot {
       @Override
       public boolean isFinished() {
         if (done.isRunning()) {
-          return done.get() > .25;
+          return done.get() > .5;
         } else if (Math.abs(gyro.getYaw() - degrees) < 5) {
           done.start();
         }
@@ -403,7 +403,7 @@ public class Robot extends TimedRobot {
         seekAprilTagAhead(aprilTag)
             .raceWith(new WaitCommand(3)),
         dramaticWait(1),
-        coralYeeter(), // YEET
+        coralYeeter(.5), // YEET
         new WaitCommand(1),
         driveForTime(.1, -.5),
         park());
@@ -420,33 +420,33 @@ public class Robot extends TimedRobot {
   private Command twoCoralAuto(int aprilTag, double LR) {
     return Commands.sequence(
         // Coral 1, drive turn yeet
-        driveDistance(1.8, 0.7, 3),
+        driveDistance(1.8, 0.8, 3),
         turnDegrees(45 * LR),
         // driveDistance(1, 0.5, 3),
         seekAprilTagAhead(aprilTag)
-            .raceWith(new WaitCommand(1.5)),
+            .raceWith(new WaitCommand(1.75)),
         // dramaticWait(1),
-        coralYeeter(),
+        coralYeeter(.25),
         // new WaitCommand(1),
         // Back, turn back
-        driveDistance(-2, 0.7, 3),
-        turnDegrees(120 * LR),
-        driveDistance(-4, 0.7, 3),
+        driveDistance(-2, 0.8, 3),
+        turnDegrees(125 * LR),
+        driveDistance(-4, 0.8, 3),
 
         // Turn butt to feeder, back up
         turnDegrees(-45 * LR),
         driveDistance(-2, 0.7, 3)
-            .raceWith(new WaitCommand(2)),
+            .raceWith(new WaitCommand(1.5)),
         //new WaitCommand(.5),
 
         // Forward and yeet
-        seekAprilTagAhead(6)
-            .raceWith(new WaitCommand(2)),
+        seekAprilTagAhead(17)
+            .raceWith(new WaitCommand(2.5)),
         // turnDegrees(10 * LR)
         // .raceWith(new WaitCommand(1)),
         // driveDistance(4, 0.6, 3),
         // dramaticWait(1),
-        coralYeeter(),
+        coralYeeter(.5),
         driveDistance(-.1, 0.7, 1),
 
         // new WaitCommand(1),
