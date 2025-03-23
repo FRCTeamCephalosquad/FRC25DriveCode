@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import java.util.zip.Deflater;
+
 import com.revrobotics.spark.SparkMax;
 
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -150,32 +152,57 @@ public class Robot extends TimedRobot {
         new InstantCommand(() -> drive.arcadeDrive(0, 0.0)));
   }
 
-  Command driveDistance(double meters, double speed) {
-    PIDController pid = new PIDController(0.4, 0, 0);
+  /**
+   * Clamp the value 's absolute value between the limits given
+   * 
+   * @param v
+   * @param absMin
+   * @param absMax
+   * @return
+   */
+  double signedClamp(double v, double absMin, double absMax) {
+    double sign = Math.signum(v);
+    v = Math.abs(v);
+    v = Math.max(Math.abs(absMin), v);
+    v = Math.min(Math.abs(absMax), v);
+    v = v * sign;
+    return v;
+  }
+
+  Command driveDistance(double meters, double speed, double timeLimit) {
+    PIDController pid = new PIDController(0.4, 0.01, 0);
     return new Command() {
       @Override
       public void initialize() {
+        System.out.println("Starting to drive " + meters);
         drive.resetDistanceForward();
       }
 
       @Override
       public void execute() {
         double s = pid.calculate(drive.getDistanceForward(), meters);
+        double sign = Math.signum(s);
+        s = Math.abs(s);
         s = Math.max(0.1, s);
         s = Math.min(speed, s);
+        s = s * sign;
         drive.arcadeDrive(s, 0.0);
       }
 
       @Override
       public boolean isFinished() {
-        return drive.getDistanceForward() >= meters;
+        if (meters < 0)
+          return drive.getDistanceForward() <= meters;
+        else
+          return drive.getDistanceForward() >= meters;
       }
 
       @Override
       public void end(boolean interrupted) {
+        System.out.println("Done driving " + interrupted);
         drive.arcadeDrive(0.0, 0.0);
       }
-    };
+    }.raceWith(new WaitCommand(timeLimit));
 
   }
 
@@ -195,6 +222,7 @@ public class Robot extends TimedRobot {
       LEDPattern basePattern = LEDPattern.gradient(GradientType.kContinuous, Color.kRed, Color.kBlue);
 
       public void initialize() {
+        System.out.println("DRAMA");
         timer.start();
       };
 
@@ -206,7 +234,9 @@ public class Robot extends TimedRobot {
 
       @Override
       public boolean isFinished() {
+        System.out.println("Drama Done");
         return timer.get() >= duration;
+
       }
     };
   }
@@ -231,17 +261,15 @@ public class Robot extends TimedRobot {
    * Turn the robot by a number of degrees, using the gyro
    */
   Command turnDegrees(double degrees) {
-    final double SLOW_TURN = 0.6; // When we are close go this fast
-    final double FAST_TURN = 0.7; // If we are further, go this fast
-    
-    final double MAX = 0.4;
+    final double MAX = 0.6;
 
     // gyro Positive is right
     // Gyro jumps from 180 to -180
     return new Command() {
-      boolean done = false;
+      // boolean done = false;
+      Timer done = new Timer();
 
-      PIDController pid = new PIDController(0.04, 0, 0.008);
+      PIDController pid = new PIDController(0.03, 0.00, 0.001);
 
       /**
        * When this command starts it sets the control deadband to
@@ -250,36 +278,14 @@ public class Robot extends TimedRobot {
       @Override
       public void initialize() {
         gyro.zeroYaw();
+        System.out.println("Turning " + degrees);
       }
 
       @Override
       public void execute() {
         double s = pid.calculate(gyro.getYaw(), degrees);
-
-        s = Math.max(-MAX, Math.min(MAX, s));
-
+        s = signedClamp(s, 0.0, MAX);
         drive.arcadeDrive(0, -s);
-        /* 
-        // How far are we from the direction we want to go?
-        double error = degrees - gyro.getYaw();
-
-        // Figure out which way to turn
-        double turn = -Math.signum(error);
-
-        // And how fast
-        if (Math.abs(error) < 45)
-          turn *= SLOW_TURN;
-        else
-          turn *= FAST_TURN;
-
-        // Set the turn
-        drive.arcadeDrive(0, turn);
-
-        // If we are very close, set done to true.
-        if (Math.abs(error) < 10) {
-          done = true;
-        }
-        */
       }
 
       /*
@@ -287,7 +293,12 @@ public class Robot extends TimedRobot {
        */
       @Override
       public boolean isFinished() {
-        return done;
+        if (done.isRunning()) {
+          return done.get() > .25;
+        } else if (Math.abs(gyro.getYaw() - degrees) < 5) {
+          done.start();
+        }
+        return false;
       }
 
       /**
@@ -295,6 +306,7 @@ public class Robot extends TimedRobot {
        */
       @Override
       public void end(boolean interrupted) {
+        System.out.println("Done Turning");
         drive.stopMotor();
       }
 
@@ -411,15 +423,23 @@ public class Robot extends TimedRobot {
 
   private Command autoLeftCommand(int aprilTag) {
     return Commands.sequence(
-        driveForTime(2, 0.5),
-        turnDegrees(45),
-        seekAprilTagAhead(aprilTag)
-            .raceWith(new WaitCommand(7)),
+        driveDistance(1.8, 0.5, 3),
+        turnDegrees(60),
+        driveDistance(2, 0.5, 3),
         dramaticWait(1),
         coralYeeter(),
         new WaitCommand(1),
-        driveForTime(.2, -.5),
-        park());
+        driveDistance(-2, 0.5, 3),
+        turnDegrees(90),
+        driveDistance(-4, 0.5, 3),
+        turnDegrees(-45),
+        driveDistance(-2, 0.5, 3),
+        turnDegrees(10),
+        driveDistance(4, 0.5, 3),
+        dramaticWait(1),
+        coralYeeter(),
+        new WaitCommand(1));
+
   }
 
   /** This function is run once each time the robot enters autonomous mode. */
@@ -495,12 +515,9 @@ public class Robot extends TimedRobot {
     }
   }
 
-  void voltageDrive(Voltage v) {
-
-  }
-
-  void logMotors(SysIdRoutineLog l) {
-
+  @Override
+  public void teleopExit() {
+    drive.setMaxOutput(1);
   }
 
   @Override
@@ -510,11 +527,22 @@ public class Robot extends TimedRobot {
 
   @Override
   public void testPeriodic() {
-    if (m_controller.getYButtonPressed()) {
-      CommandScheduler.getInstance().schedule(driveDistance(4, 0.4));
+    if (m_controller.getXButtonPressed()) {
+      CommandScheduler.getInstance().cancelAll();
+      CommandScheduler.getInstance().schedule(turnDegrees(-45));
     }
-    if ( m_controller.getBButtonPressed() ){
-      CommandScheduler.getInstance().schedule(turnDegrees(90));
+    if (m_controller.getBButtonPressed()) {
+      CommandScheduler.getInstance().cancelAll();
+      CommandScheduler.getInstance().schedule(turnDegrees(45));
+    }
+
+    if (m_controller.getYButtonPressed()) {
+      CommandScheduler.getInstance().cancelAll();
+      CommandScheduler.getInstance().schedule(driveDistance(2, .5, 3));
+    }
+    if (m_controller.getAButtonPressed()) {
+      CommandScheduler.getInstance().cancelAll();
+      CommandScheduler.getInstance().schedule(driveDistance(-2, .5, 3));
     }
   }
 
