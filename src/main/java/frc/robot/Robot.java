@@ -327,8 +327,8 @@ public class Robot extends TimedRobot {
     final double SLOW_TURN = 0.3; // Speed to turn when it is almost straight ahead
     final double FAST_TURN = 0.5; // Speed to turn if it is off to the side
 
-    final double TAG_SPEED = 0.5; // Speed to drive forward when we see it
-    final double SEARCH_SPEED = 0.4; // Speed to drive forward when we do not see it
+    final double TAG_SPEED = 0.6; // Speed to drive forward when we see it
+    final double SEARCH_SPEED = 0.6; ; // Speed to drive forward when we do not see it
 
     return new Command() {
       @Override
@@ -369,13 +369,13 @@ public class Robot extends TimedRobot {
   }
 
   private static final String autoDefault = "Drive Off Line";
-  private static final String autoRedRight = "Red Right (Red Reef)";
+  private static final String autoRedRight = "Red Right (Red Reef) <-";
   private static final String autoRedMiddle = "Red Middle";
-  private static final String autoRedLeft = "Red Left";
+  private static final String autoRedLeft = "Red Left ->";
 
-  private static final String autoBlueRight = "Blue Right (Blue Reef)";
+  private static final String autoBlueRight = "Blue Right (Blue Reef) ->";
   private static final String autoBlueMiddle = "Blue Middle";
-  private static final String autoBlueLeft = "Blue Left";
+  private static final String autoBlueLeft = "Blue Left <-";
 
   private final SendableChooser<String> auto_chooser = new SendableChooser<>();
 
@@ -396,19 +396,6 @@ public class Robot extends TimedRobot {
         park());
   }
 
-  private Command autoRightCommand(int aprilTag) {
-    return Commands.sequence(
-        driveForTime(2, 0.5),
-        turnDegrees(-45),
-        seekAprilTagAhead(aprilTag)
-            .raceWith(new WaitCommand(7)),
-        dramaticWait(1),
-        coralYeeter(), // YEET
-        new WaitCommand(1),
-        driveForTime(.2, -.5),
-        park());
-  }
-
   private Command autoMiddleCommand(int aprilTag) {
     return Commands.sequence(
         driveForTime(1, 0.5),
@@ -422,23 +409,47 @@ public class Robot extends TimedRobot {
   }
 
   private Command autoLeftCommand(int aprilTag) {
+    return twoCoralAuto(aprilTag, 1);
+  }
+
+  private Command autoRightCommand(int aprilTag) {
+    return twoCoralAuto(aprilTag, -1);
+  }
+
+  private Command twoCoralAuto(int aprilTag, double LR) {
     return Commands.sequence(
-        driveDistance(1.8, 0.5, 3),
-        turnDegrees(60),
-        driveDistance(2, 0.5, 3),
-        dramaticWait(1),
+        // Coral 1, drive turn yeet
+        driveDistance(1.8, 0.7, 3),
+        turnDegrees(45 * LR),
+        // driveDistance(1, 0.5, 3),
+        seekAprilTagAhead(aprilTag)
+            .raceWith(new WaitCommand(1.5)),
+        // dramaticWait(1),
         coralYeeter(),
-        new WaitCommand(1),
-        driveDistance(-2, 0.5, 3),
-        turnDegrees(90),
-        driveDistance(-4, 0.5, 3),
-        turnDegrees(-45),
-        driveDistance(-2, 0.5, 3),
-        turnDegrees(10),
-        driveDistance(4, 0.5, 3),
-        dramaticWait(1),
+        // new WaitCommand(1),
+        // Back, turn back
+        driveDistance(-2, 0.7, 3),
+        turnDegrees(120 * LR),
+        driveDistance(-4, 0.7, 3),
+
+        // Turn butt to feeder, back up
+        turnDegrees(-45 * LR),
+        driveDistance(-2, 0.7, 3)
+            .raceWith(new WaitCommand(2)),
+        //new WaitCommand(.5),
+
+        // Forward and yeet
+        seekAprilTagAhead(6)
+            .raceWith(new WaitCommand(1.5)),
+        // turnDegrees(10 * LR)
+        // .raceWith(new WaitCommand(1)),
+        // driveDistance(4, 0.6, 3),
+        // dramaticWait(1),
         coralYeeter(),
-        new WaitCommand(1));
+        driveDistance(-.1, 0.7, 1),
+
+        // new WaitCommand(1),
+        park());
 
   }
 
