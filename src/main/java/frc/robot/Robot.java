@@ -246,7 +246,7 @@ public class Robot extends TimedRobot {
    */
   Command coralYeeter() {
     return Commands.sequence(
-        new RunCommand(() -> m_coralFeeder.set(-0.2)).raceWith(new WaitCommand(1)),
+        new RunCommand(() -> m_coralFeeder.set(-0.2)).raceWith(new WaitCommand(.25)),
         new InstantCommand(() -> m_coralFeeder.stopMotor()));
   }
 
@@ -373,9 +373,9 @@ public class Robot extends TimedRobot {
   private static final String autoRedMiddle = "Red Middle";
   private static final String autoRedLeft = "Red Left ->";
 
-  private static final String autoBlueRight = "Blue Right (Blue Reef) ->";
+  private static final String autoBlueRight = "Blue Right (Blue Reef) <-";
   private static final String autoBlueMiddle = "Blue Middle";
-  private static final String autoBlueLeft = "Blue Left <-";
+  private static final String autoBlueLeft = "Blue Left ->";
 
   private final SendableChooser<String> auto_chooser = new SendableChooser<>();
 
@@ -440,7 +440,7 @@ public class Robot extends TimedRobot {
 
         // Forward and yeet
         seekAprilTagAhead(6)
-            .raceWith(new WaitCommand(1.5)),
+            .raceWith(new WaitCommand(1.75)),
         // turnDegrees(10 * LR)
         // .raceWith(new WaitCommand(1)),
         // driveDistance(4, 0.6, 3),
