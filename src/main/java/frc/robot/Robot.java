@@ -327,8 +327,8 @@ public class Robot extends TimedRobot {
     final double SLOW_TURN = 0.3; // Speed to turn when it is almost straight ahead
     final double FAST_TURN = 0.5; // Speed to turn if it is off to the side
 
-    final double TAG_SPEED = 0.6; // Speed to drive forward when we see it
-    final double SEARCH_SPEED = 0.6; ; // Speed to drive forward when we do not see it
+    final double TAG_SPEED = 0.5; // Speed to drive forward when we see it
+    final double SEARCH_SPEED = 0.5; ; // Speed to drive forward when we do not see it
 
     return new Command() {
       @Override
