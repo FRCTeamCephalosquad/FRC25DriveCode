@@ -124,7 +124,8 @@ public class Robot extends TimedRobot {
     drive.drivePeriodic();
 
     // Auto Information
-    SmartDashboard.putString("Selected Auto:", auto_chooser.getSelected());
+
+    //SmartDashboard.putString("Selected Auto:", auto_chooser.getSelected());
 
     // Send Gyro Information
     SmartDashboard.putNumber("Gyro", gyro.getYaw());
@@ -440,7 +441,7 @@ public class Robot extends TimedRobot {
 
         // Forward and yeet
         seekAprilTagAhead(6)
-            .raceWith(new WaitCommand(1.75)),
+            .raceWith(new WaitCommand(2)),
         // turnDegrees(10 * LR)
         // .raceWith(new WaitCommand(1)),
         // driveDistance(4, 0.6, 3),
