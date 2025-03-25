@@ -125,7 +125,7 @@ public class Robot extends TimedRobot {
 
     // Auto Information
 
-    //SmartDashboard.putString("Selected Auto:", auto_chooser.getSelected());
+    // SmartDashboard.putString("Selected Auto:", auto_chooser.getSelected());
 
     // Send Gyro Information
     SmartDashboard.putNumber("Gyro", gyro.getYaw());
@@ -329,7 +329,8 @@ public class Robot extends TimedRobot {
     final double FAST_TURN = 0.5; // Speed to turn if it is off to the side
 
     final double TAG_SPEED = 0.5; // Speed to drive forward when we see it
-    final double SEARCH_SPEED = 0.5; ; // Speed to drive forward when we do not see it
+    final double SEARCH_SPEED = 0.5;
+    ; // Speed to drive forward when we do not see it
 
     return new Command() {
       @Override
@@ -371,23 +372,31 @@ public class Robot extends TimedRobot {
 
   private static final String autoDefault = "Drive Off Line";
   private static final String autoRedRight = "Red Right (Red Reef) <-";
+  private static final String autoRedRight2 = "Red Right TWO (Red Reef) <-";
   private static final String autoRedMiddle = "Red Middle";
   private static final String autoRedLeft = "Red Left ->";
+  private static final String autoRedLeft2 = "Red Left TWO ->";
 
   private static final String autoBlueRight = "Blue Right (Blue Reef) <-";
+  private static final String autoBlueRight2 = "Blue Right TWO (Blue Reef) <-";
   private static final String autoBlueMiddle = "Blue Middle";
   private static final String autoBlueLeft = "Blue Left ->";
+  private static final String autoBlueLeft2 = "Blue Left TWO ->";
 
   private final SendableChooser<String> auto_chooser = new SendableChooser<>();
 
   public void autonomousOptionSetup() {
     auto_chooser.setDefaultOption(autoDefault, autoDefault);
     auto_chooser.addOption(autoRedRight, autoRedRight);
+    auto_chooser.addOption(autoRedRight2, autoRedRight2);
     auto_chooser.addOption(autoRedMiddle, autoRedMiddle);
     auto_chooser.addOption(autoRedLeft, autoRedLeft);
+    auto_chooser.addOption(autoRedLeft2, autoRedLeft2);
     auto_chooser.addOption(autoBlueRight, autoBlueRight);
+    auto_chooser.addOption(autoBlueRight2, autoBlueRight2);
     auto_chooser.addOption(autoBlueMiddle, autoBlueMiddle);
     auto_chooser.addOption(autoBlueLeft, autoBlueLeft);
+    auto_chooser.addOption(autoBlueLeft2, autoBlueLeft2);
     SmartDashboard.putData("Auto choices", auto_chooser);
   }
 
@@ -409,25 +418,33 @@ public class Robot extends TimedRobot {
         park());
   }
 
-  private Command autoLeftCommand(int aprilTag) {
-    return twoCoralAuto(aprilTag, 1);
-  }
+  final static double LEFT = 1;
+  final static double RIGHT = -1;
 
-  private Command autoRightCommand(int aprilTag) {
-    return twoCoralAuto(aprilTag, -1);
-  }
-
-  private Command twoCoralAuto(int aprilTag, double LR) {
+  private Command oneCoralAuto(int aprilTag1, double LR) {
     return Commands.sequence(
-        // Coral 1, drive turn yeet
+        // Coral 1, drive turn, seek yeet
+        driveDistance(1.8, 0.6, 3),
+        turnDegrees(45 * LR),
+        seekAprilTagAhead(aprilTag1)
+            .raceWith(new WaitCommand(1.75)),
+        new WaitCommand(.5),
+        coralYeeter(.5),
+
+        // Backup & done
+        driveDistance(-.1, 0.6, 1),
+        park());
+  }
+
+  private Command twoCoralAuto(int aprilTag1, int aprilTag2, double LR) {
+    return Commands.sequence(
+        // Coral 1, drive turn, seek yeet
         driveDistance(1.8, 0.8, 3),
         turnDegrees(45 * LR),
-        // driveDistance(1, 0.5, 3),
-        seekAprilTagAhead(aprilTag)
+        seekAprilTagAhead(aprilTag1)
             .raceWith(new WaitCommand(1.75)),
-        // dramaticWait(1),
         coralYeeter(.25),
-        // new WaitCommand(1),
+
         // Back, turn back
         driveDistance(-2, 0.8, 3),
         turnDegrees(125 * LR),
@@ -437,19 +454,14 @@ public class Robot extends TimedRobot {
         turnDegrees(-45 * LR),
         driveDistance(-2, 0.7, 3)
             .raceWith(new WaitCommand(1.5)),
-        //new WaitCommand(.5),
 
         // Forward and yeet
-        seekAprilTagAhead(17)
+        seekAprilTagAhead(aprilTag2)
             .raceWith(new WaitCommand(2.5)),
-        // turnDegrees(10 * LR)
-        // .raceWith(new WaitCommand(1)),
-        // driveDistance(4, 0.6, 3),
-        // dramaticWait(1),
         coralYeeter(.5),
-        driveDistance(-.1, 0.7, 1),
 
-        // new WaitCommand(1),
+        // Backup & done
+        driveDistance(-.1, 0.7, 1),
         park());
 
   }
@@ -461,13 +473,17 @@ public class Robot extends TimedRobot {
     final String autoName = auto_chooser.getSelected();
 
     final Command autoCommand = switch (autoName) {
-      case autoRedRight -> autoRightCommand(11);
+      case autoRedRight -> oneCoralAuto(11, RIGHT);
+      case autoRedRight2 -> twoCoralAuto(11, 6, RIGHT);
       case autoRedMiddle -> autoMiddleCommand(10);
-      case autoRedLeft -> autoLeftCommand(9);
+      case autoRedLeft -> oneCoralAuto(9, LEFT);
+      case autoRedLeft2 -> twoCoralAuto(9, 8, LEFT);
 
-      case autoBlueRight -> autoRightCommand(20);
+      case autoBlueRight -> oneCoralAuto(20, RIGHT);
+      case autoBlueRight2 -> twoCoralAuto(20, 29, RIGHT);
       case autoBlueMiddle -> autoMiddleCommand(21);
-      case autoBlueLeft -> autoLeftCommand(22);
+      case autoBlueLeft -> oneCoralAuto(22, LEFT);
+      case autoBlueLeft2 -> twoCoralAuto(22, 17, LEFT);
 
       default -> autoLeaveLine();
     };
