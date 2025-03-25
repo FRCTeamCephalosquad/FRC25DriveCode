@@ -4,6 +4,9 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Second;
+import static edu.wpi.first.units.Units.Seconds;
+
 import java.util.zip.Deflater;
 
 import com.revrobotics.spark.SparkMax;
@@ -96,19 +99,24 @@ public class Robot extends TimedRobot {
 
     m_led.setLength(m_ledBuffer.getLength());
 
-    LEDPattern.solid(Color.kBlack).applyTo(rearLeftLEDs);
-    LEDPattern.solid(Color.kGreen).applyTo(sideLeftLEDs);
-    LEDPattern.solid(Color.kBlack).applyTo(frontLEDs);
-    LEDPattern.solid(Color.kRed).applyTo(sideRightLEDs);
-    LEDPattern.solid(Color.kBlack).applyTo(rearRightLEDs);
-    LEDPattern.solid(Color.kBlack).applyTo(rearLEDs);
+    /*
+     * LEDPattern.solid(Color.kBlack).applyTo(rearLeftLEDs);
+     * LEDPattern.solid(Color.kGreen).applyTo(sideLeftLEDs);
+     * LEDPattern.solid(Color.kBlack).applyTo(frontLEDs);
+     * LEDPattern.solid(Color.kRed).applyTo(sideRightLEDs);
+     * LEDPattern.solid(Color.kBlack).applyTo(rearRightLEDs);
+     * LEDPattern.solid(Color.kBlack).applyTo(rearLEDs);
+     */
 
     // Set the data
-
     m_led.start();
   }
 
+  LEDPattern base = LEDPattern.solid(Color.kGreen);
+  LEDPattern pattern = base.breathe(Seconds.of(2));
+
   private void ledPeriodic() {
+    pattern.applyTo(m_ledBuffer);
     m_led.setData(m_ledBuffer);
   }
 
